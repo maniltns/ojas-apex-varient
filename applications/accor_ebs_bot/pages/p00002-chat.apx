@@ -1,0 +1,218 @@
+page 2 (
+    name: Chat Workspace
+    alias: CHAT
+    title: Chat Workspace
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+        authorizationScheme: mustNotBePublicUser
+    }
+
+    region breadcrumbs (
+        name: Breadcrumbs
+        title: Chat Workspace
+        type: breadcrumb
+        layout {
+            sequence: 5
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+        source {
+            breadcrumb: @breadcrumb
+        }
+    )
+
+    region property-context (
+        name: Property Context
+        type: staticContent
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P2_PROPERTY (
+        type: selectList
+        label {
+            label: Active Property Scope
+            alignment: right
+        }
+        layout {
+            sequence: 10
+            region: @property-context
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/hidden
+            templateOptions: #DEFAULT#
+        }
+        lov {
+            type: sharedComponent
+            lov: @properties-lov
+        }
+    )
+
+    pageItem P2_THREAD_ID (
+        type: hidden
+        layout {
+            sequence: 20
+            region: @property-context
+            slot: regionBody
+        }
+        security {
+            sessionStateProtection: checksumRequiredSessionLevel
+        }
+    )
+
+    region chat-console (
+        name: EBS Finance Orchestrator
+        type: dynamicContent
+        source {
+            plsqlFunctionBody:
+                ```plsql
+                declare
+                    v_thread_id varchar2(100) := :P2_THREAD_ID;
+                    v_html varchar2(32767) := '';
+                begin
+                    if v_thread_id is null then
+                        v_thread_id := 'accor_th_' || :APP_USER || '_' || to_char(systimestamp, 'YYYYMMDDHH24MISS');
+                        :P2_THREAD_ID := v_thread_id;
+                    end if;
+                    
+                    v_html := '<div class="chat-wrapper" style="background-color: #070708; color: #f5f5f5; padding: 20px; border-radius: 12px; border: 1px solid #1f2020; min-height: 400px; display: flex; flex-direction: column; justify-content: space-between;">';
+                    v_html := v_html || '  <div class="chat-history" style="flex-grow: 1; overflow-y: auto; margin-bottom: 20px; font-family: sans-serif; font-size: 13px;">';
+                    
+                    -- Query messages from conversation table
+                    for r in (
+                        select role, dbms_lob.substr(message_content, 4000, 1) as msg_text, timestamp
+                          from ACCOR_CONVERSATIONS
+                         where thread_id = v_thread_id
+                         order by timestamp asc
+                    ) loop
+                        if r.role = 'user' then
+                            v_html := v_html || '    <div class="msg user-msg" style="text-align: right; margin: 10px 0;"><span style="background-color: rgba(212, 175, 55, 0.15); color: #f5f5f5; border: 1px solid rgba(212, 175, 55, 0.2); padding: 8px 12px; border-radius: 12px 12px 0 12px; display: inline-block;">' || r.msg_text || '</span></div>';
+                        else
+                            v_html := v_html || '    <div class="msg bot-msg" style="text-align: left; margin: 10px 0;"><span style="background-color: #1f2020; color: #dcdcdc; border: 1px solid #2d2e2f; padding: 8px 12px; border-radius: 12px 12px 12px 0; display: inline-block; max-width: 80%;">' || r.msg_text || '</span></div>';
+                        end if;
+                    end loop;
+                    
+                    v_html := v_html || '  </div>';
+                    v_html := v_html || '</div>';
+                    
+                    return v_html;
+                end;
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/collapsible
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    region chat-input-region (
+        name: Message Input
+        type: staticContent
+        layout {
+            sequence: 40
+            slot: body
+        }
+        appearance {
+            template: @/blank-with-attributes
+            templateOptions: #DEFAULT#
+        }
+    )
+
+    pageItem P2_USER_MESSAGE (
+        type: textField
+        label {
+            label: Message
+            alignment: right
+        }
+        layout {
+            sequence: 10
+            region: @chat-input-region
+            slot: regionBody
+            alignment: left
+        }
+        appearance {
+            template: @/hidden
+            templateOptions: #DEFAULT#
+            valuePlaceholder: Ask EBS Finance Bot... (e.g. 'Show AP aging' or 'Approve payment ap_inv_1001')
+        }
+    )
+
+    button send-msg (
+        buttonName: SEND_MSG
+        label: Send
+        layout {
+            sequence: 20
+            region: @chat-input-region
+            slot: next
+        }
+        appearance {
+            buttonTemplate: @/text
+            hot: true
+            templateOptions: #DEFAULT#
+        }
+        behavior {
+            action: submitPage
+        }
+    )
+
+    process process-user-chat (
+        name: Process User Chat
+        type: executeCode
+        source {
+            plsqlCode:
+                ```plsql
+                declare
+                    v_res_json varchar2(32767);
+                begin
+                    if :P2_USER_MESSAGE is not null then
+                        v_res_json := ACCOR_EBS_BOT_PKG.process_chat_message(
+                            p_email       => :APP_USER,
+                            p_ebs_role    => 'Finance Manager', -- Default role for testing inside APEX session
+                            p_message     => :P2_USER_MESSAGE,
+                            p_property_id => NVL(:P2_PROPERTY, 'prop_novotel_paris'),
+                            p_thread_id   => :P2_THREAD_ID
+                        );
+                        
+                        -- Clear message input
+                        :P2_USER_MESSAGE := null;
+                    end if;
+                end;
+                ```
+        }
+        execution {
+            sequence: 10
+            point: afterSubmit
+        }
+        advanced {
+            executionMappingIdentifier: 402283928123891
+        }
+        serverSideCondition {
+            type: whenButtonPressed
+            button: @send-msg
+        }
+    )
+
+)

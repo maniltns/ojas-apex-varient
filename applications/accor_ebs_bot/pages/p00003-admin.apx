@@ -1,0 +1,360 @@
+page 3 (
+    name: Admin Governance
+    alias: ADMIN
+    title: Admin Governance
+    appearance {
+        pageTemplate: @/standard
+        templateOptions: #DEFAULT#
+    }
+    navigation {
+        cursorFocus: doNotFocusCursor
+    }
+    security {
+        pageAccessProtection: argumentsMustHaveChecksum
+        formAutoComplete: false
+        authorizationScheme: @administration-rights
+    }
+
+    region breadcrumbs (
+        name: Breadcrumbs
+        title: Admin Governance
+        type: breadcrumb
+        layout {
+            sequence: 5
+            slot: breadcrumbBar
+        }
+        appearance {
+            template: @/breadcrumb
+            templateOptions: #DEFAULT#
+        }
+        source {
+            breadcrumb: @breadcrumb
+        }
+    )
+
+    region users-grid (
+        name: Users Registry
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select user_id, email, name, role, ebs_role, property_access, org_id
+                  from ACCOR_USERS
+                 order by name
+                ```
+        }
+        layout {
+            sequence: 10
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+
+        column USER_ID (
+            type: plainText
+            heading {
+                heading: User ID
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column EMAIL (
+            type: plainText
+            heading {
+                heading: Email
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column NAME (
+            type: plainText
+            heading {
+                heading: Name
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column ROLE (
+            type: plainText
+            heading {
+                heading: Role
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column EBS_ROLE (
+            type: plainText
+            heading {
+                heading: EBS Role
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column PROPERTY_ACCESS (
+            type: plainText
+            heading {
+                heading: Property Access
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column ORG_ID (
+            type: plainText
+            heading {
+                heading: Org ID
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: STRING
+            }
+        )
+    )
+
+    region audit-logs-grid (
+        name: Audit Trail
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select log_id, email, action_type, query_text, status, reason, timestamp
+                  from ACCOR_AUDIT_LOG
+                 order by timestamp desc
+                ```
+        }
+        layout {
+            sequence: 20
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+
+        column LOG_ID (
+            type: plainText
+            heading {
+                heading: Log ID
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column EMAIL (
+            type: plainText
+            heading {
+                heading: Email
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column ACTION_TYPE (
+            type: plainText
+            heading {
+                heading: Action Type
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column QUERY_TEXT (
+            type: plainText
+            heading {
+                heading: Query Text
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column REASON (
+            type: plainText
+            heading {
+                heading: Reason
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column TIMESTAMP (
+            type: plainText
+            heading {
+                heading: Timestamp
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: DATE
+            }
+        )
+    )
+
+    region security-events-grid (
+        name: Blocked Security Alerts
+        type: interactiveReport
+        source {
+            location: localDatabase
+            type: sqlQuery
+            sqlQuery:
+                ```sql
+                select log_id, email, action_type, query_text, status, reason, timestamp
+                  from ACCOR_AUDIT_LOG
+                 where status = 'blocked'
+                 order by timestamp desc
+                ```
+        }
+        layout {
+            sequence: 30
+            slot: body
+        }
+        appearance {
+            template: @/interactive-report
+            templateOptions: #DEFAULT#
+        }
+
+        column LOG_ID (
+            type: plainText
+            heading {
+                heading: Log ID
+            }
+            layout {
+                sequence: 10
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column EMAIL (
+            type: plainText
+            heading {
+                heading: Email
+            }
+            layout {
+                sequence: 20
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column ACTION_TYPE (
+            type: plainText
+            heading {
+                heading: Action Type
+            }
+            layout {
+                sequence: 30
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column QUERY_TEXT (
+            type: plainText
+            heading {
+                heading: Query Text
+            }
+            layout {
+                sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column STATUS (
+            type: plainText
+            heading {
+                heading: Status
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column REASON (
+            type: plainText
+            heading {
+                heading: Reason
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column TIMESTAMP (
+            type: plainText
+            heading {
+                heading: Timestamp
+            }
+            layout {
+                sequence: 70
+            }
+            source {
+                dataType: DATE
+            }
+        )
+    )
+
+)

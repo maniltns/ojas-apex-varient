@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "skills": {
+    "apex": {
+      "source": "oracle/skills",
+      "sourceType": "github",
+      "skillPath": "apex/SKILL.md",
+      "computedHash": "f9391422267969436cdc05b0029ac04fa0334488f6777c62f6668a6bdda5356e"
+    },
+    "frontend-design": {
+      "source": "jwynia/agent-skills",
+      "sourceType": "github",
+      "computedHash": "df017e8504626f06e14b093dcf668ada5b40a6fe9eaf565d2cc54b0997d7927a"
+    },
+    "generating-apex": {
+      "source": "forcedotcom/afv-library",
+      "sourceType": "github",
+      "skillPath": "skills/generating-apex/SKILL.md",
+      "computedHash": "2c4cfc9e4a7387f41f68c186ea3a718c193bae30232084718e723c6dbb7bcbe0"
+    },
+    "remotion-best-practices": {
+      "source": "remotion-dev/skills",
+      "sourceType": "github",
+      "skillPath": "skills/remotion/SKILL.md",
+      "computedHash": "006f8413941b59eff54a7ce64851b8a2fb79e7a3a5f1a895e97a48f01482553d"
+    },
+    "senior-backend": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "c15972382ed35ec141f419c3caec031156721d85b26c29fd22cd4cf9991acd7b"
+    }
+  }
+}

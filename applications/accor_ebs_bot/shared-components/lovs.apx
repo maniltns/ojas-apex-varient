@@ -1,0 +1,33 @@
+lov boolean (
+    name: BOOLEAN
+    source {
+        location: staticValues
+    }
+
+    entry false (
+        sequence: 2
+        display: No
+        return: FALSE
+    )
+
+    entry true (
+        sequence: 1
+        display: Yes
+        return: TRUE
+    )
+
+)
+
+lov properties-lov (
+    name: PROPERTIES_LOV
+    source {
+        location: localDatabase
+        sqlQuery:
+            ```sql
+            select name as d, property_id as r
+              from ACCOR_PROPERTIES
+             order by name
+            ```
+    }
+)
+
