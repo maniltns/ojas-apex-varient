@@ -69,7 +69,7 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_IAM_VALIDATOR_PKG AS
         BEGIN
             SELECT user_id INTO v_user_id 
               FROM ACCOR_USERS 
-             WHERE email = p_email;
+             WHERE UPPER(email) = UPPER(p_email);
         EXCEPTION
             WHEN NO_DATA_FOUND THEN
                 v_user_id := 'accor_usr_unknown';
@@ -95,7 +95,7 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_IAM_VALIDATOR_PKG AS
             SELECT role, property_access 
               INTO v_role, v_property_access
               FROM ACCOR_USERS 
-             WHERE email = p_email;
+             WHERE UPPER(email) = UPPER(p_email);
         EXCEPTION
             WHEN NO_DATA_FOUND THEN
                 RETURN 'BLOCKED: User not found in OCI IAM Directory';

@@ -1,0 +1,207 @@
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#1f6feb;--text:#e6edf3;--text-dim:#8b949e}
+.eb-wrap{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);border-radius:16px;padding:20px;color:var(--text);max-width:960px;margin:0 auto}
+.eb-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.eb-logo{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.eb-title{font-size:1.2rem;font-weight:700;color:var(--text)}
+.eb-subtitle{font-size:.8rem;color:var(--text-dim)}
+.eb-select{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:.9rem;width:100%;margin-bottom:16px}
+.eb-feed{height:400px;overflow-y:auto;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
+.eb-msg-user{align-self:flex-end;background:var(--accent);color:#fff;padding:10px 16px;border-radius:18px 18px 4px 18px;max-width:70%;word-break:break-word;animation:fadeIn .3s}
+.eb-msg-bot{align-self:flex-start;background:var(--surface);color:var(--text);padding:12px 16px;border-radius:18px 18px 18px 4px;max-width:82%;border:1px solid var(--border);animation:fadeIn .3s;line-height:1.6}
+.eb-msg-bot table{border-collapse:collapse;width:100%;font-size:.82em;margin-top:8px}
+.eb-msg-bot td,.eb-msg-bot th{border:1px solid var(--border);padding:6px 10px;text-align:left}
+.eb-msg-bot th{background:#21262d;font-weight:600;color:var(--accent)}
+.eb-msg-bot tr:nth-child(even){background:rgba(255,255,255,.03)}
+.eb-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.eb-chip{padding:5px 14px;background:var(--surface);color:var(--accent);border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:.8rem;transition:all .2s}
+.eb-chip:hover{background:var(--accent);color:#fff}
+.eb-input-row{display:flex;gap:8px;align-items:flex-end}
+.eb-textarea{flex:1;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.9rem;resize:none;font-family:inherit;height:52px;transition:border .2s}
+.eb-textarea:focus{outline:none;border-color:var(--accent)}
+.eb-btn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:14px 22px;cursor:pointer;font-size:.9rem;font-weight:600;white-space:nowrap;transition:all .2s}
+.eb-btn:hover{background:#388bfd;transform:translateY(-1px)}
+.eb-btn:active{transform:translateY(0)}
+.eb-btn:disabled{opacity:.5;cursor:not-allowed}
+.eb-approval{background:var(--surface);border:1px solid #f85149;border-radius:12px;padding:16px;margin-top:12px;display:none}
+.eb-approval.visible{display:block}
+.eb-approval-title{color:#f85149;font-weight:700;margin-bottom:8px}
+.eb-approval-btns{display:flex;gap:8px;margin-top:12px}
+.eb-confirm-btn{background:#238636;color:#fff;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-weight:600;font-size:.9rem}
+.eb-cancel-btn{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px 20px;cursor:pointer;font-size:.9rem}
+.eb-typing{display:none;align-self:flex-start;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:18px;color:var(--text-dim);font-size:.9rem}
+.eb-typing.visible{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+
+<div class="eb-wrap">
+  <!-- Header -->
+  <div class="eb-header">
+    <div class="eb-logo">🏨</div>
+    <div>
+      <div class="eb-title">ACCOR EBS Finance Bot</div>
+      <div class="eb-subtitle">Secure Corporate Finance AI Assistant</div>
+    </div>
+  </div>
+
+  <!-- Property Selector -->
+  <select id="eb-property" class="eb-select">
+    <option value="">-- Select Property --</option>
+  </select>
+
+  <!-- Quick Action Chips -->
+  <div class="eb-chips">
+    <span class="eb-chip" onclick="ebChip('Show AP Aging')">📊 AP Aging</span>
+    <span class="eb-chip" onclick="ebChip('Show GL Balances')">💰 GL Balances</span>
+    <span class="eb-chip" onclick="ebChip('Consolidated Summary')">🏢 Portfolio</span>
+    <span class="eb-chip" onclick="ebChip('List overdue invoices')">⏰ Overdue</span>
+  </div>
+
+  <!-- Chat Feed -->
+  <div id="eb-feed" class="eb-feed">
+    <div class="eb-msg-bot">
+      👋 <strong>Welcome to ACCOR EBS Finance Bot!</strong><br/><br/>
+      I can help you with:<br/>
+      &bull; AP Aging reports by property<br/>
+      &bull; GL Account balances<br/>
+      &bull; Invoice payment approvals<br/>
+      &bull; Consolidated portfolio summaries<br/><br/>
+      <em>Select a property above and type your question below.</em>
+    </div>
+  </div>
+
+  <!-- Typing indicator -->
+  <div id="eb-typing" class="eb-typing">⏳ Thinking...</div>
+
+  <!-- Input Row -->
+  <div class="eb-input-row">
+    <textarea id="eb-msg" class="eb-textarea" placeholder="Ask about AP aging, GL balances, or type 'approve payment for invoice ID'..." rows="2"></textarea>
+    <button type="button" id="eb-send" class="eb-btn" onclick="ebSend()">Send ➤</button>
+  </div>
+
+  <!-- Approval Box -->
+  <div id="eb-approval" class="eb-approval">
+    <div class="eb-approval-title">⚠️ Payment Approval Required</div>
+    <div id="eb-approval-details"></div>
+    <div class="eb-approval-btns">
+      <button type="button" class="eb-confirm-btn" onclick="ebConfirm()">✅ Confirm Payment</button>
+      <button type="button" class="eb-cancel-btn" onclick="document.getElementById('eb-approval').classList.remove('visible')">✖ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ACCOR EBS Bot UI Script ──────────────────────────────────
+apex.jQuery(function($){
+  var approvalPayload = null;
+
+  // Load properties into dropdown
+  apex.server.process('LOAD_PROPERTIES', {}, {
+    dataType: 'json',
+    success: function(d) {
+      var sel = document.getElementById('eb-property');
+      if (sel) {
+        (d.properties || []).forEach(function(p){
+          var o = document.createElement('option');
+          o.value = p.id; o.text = p.name;
+          sel.appendChild(o);
+        });
+      }
+    }
+  });
+
+  // Load existing conversation
+  apex.server.process('LOAD_CHAT', {}, {
+    dataType: 'json',
+    success: function(d) {
+      if(d.messages && d.messages.length > 0) {
+        var feed = document.getElementById('eb-feed');
+        if (feed) {
+          feed.innerHTML = '';
+          d.messages.forEach(function(m) {
+            addMsg(m.role, m.content);
+          });
+          scrollFeed();
+        }
+      }
+    }
+  });
+
+  // Enter key to send
+  document.getElementById('eb-msg').addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); ebSend(); }
+  });
+
+  window.ebSend = function() {
+    var msg = document.getElementById('eb-msg').value.trim();
+    var prop = document.getElementById('eb-property').value;
+    if(!msg){ alert('Please type a message.'); return; }
+
+    addMsg('user', msg);
+    document.getElementById('eb-msg').value = '';
+    document.getElementById('eb-send').disabled = true;
+    document.getElementById('eb-typing').classList.add('visible');
+    scrollFeed();
+
+    apex.server.process('PROCESS_CHAT', {
+      x01: msg,
+      x02: prop
+    }, {
+      dataType: 'json',
+      success: function(d) {
+        document.getElementById('eb-typing').classList.remove('visible');
+        document.getElementById('eb-send').disabled = false;
+        if(d.status === 'success' || d.reply) {
+          addMsg('bot', d.reply || d.raw || 'Done.');
+          scrollFeed();
+          if(d.requires_approval === true) {
+            approvalPayload = typeof d.approval_payload === 'string' ? JSON.parse(d.approval_payload) : d.approval_payload;
+            document.getElementById('eb-approval-details').innerHTML =
+              '<strong>Invoice ID:</strong> ' + (approvalPayload ? (approvalPayload.invoice_id || '') : '') +
+              '<br/><strong>Invoice Number:</strong> ' + (approvalPayload ? (approvalPayload.invoice_number || '') : '') +
+              '<br/><strong>Amount:</strong> EUR ' + (approvalPayload ? (approvalPayload.amount || '') : '');
+            document.getElementById('eb-approval').classList.add('visible');
+          }
+        } else {
+          addMsg('bot', '❌ ' + (d.message || 'An error occurred.'));
+          scrollFeed();
+        }
+      },
+      error: function() {
+        document.getElementById('eb-typing').classList.remove('visible');
+        document.getElementById('eb-send').disabled = false;
+        addMsg('bot', '❌ Connection error. Please try again.');
+        scrollFeed();
+      }
+    });
+  };
+
+  window.ebChip = function(text) {
+    document.getElementById('eb-msg').value = text;
+    ebSend();
+  };
+
+  window.ebConfirm = function() {
+    document.getElementById('eb-approval').classList.remove('visible');
+    document.getElementById('eb-msg').value = 'CONFIRM';
+    ebSend();
+  };
+
+  function addMsg(role, content) {
+    var feed = document.getElementById('eb-feed');
+    var div = document.createElement('div');
+    div.className = role === 'user' ? 'eb-msg-user' : 'eb-msg-bot';
+    div.innerHTML = role === 'user' ? escHtml(content) : content;
+    feed.appendChild(div);
+  }
+
+  function scrollFeed() {
+    var feed = document.getElementById('eb-feed');
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+});
+</script>

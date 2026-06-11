@@ -262,6 +262,68 @@ END;
 
 ---
 
+## 🚀 End-to-End Enterprise Production Implementation Plan
+
+To transition this POC into a highly secure, reliable, and SOX-compliant production solution for ACCOR, the following steps must be executed to implement the **Decoupled Read/Write Split Integration Pattern**:
+
+### Phase 1: Secure Network Connectivity (VCN to On-Premises)
+1. **Provision OCI VCN & Subnets:**
+   * Create an OCI Virtual Cloud Network (VCN) with Private Subnets for the database and application layers.
+2. **Establish Hybrid Connectivity Tunnel:**
+   * Provision **OCI FastConnect** or establish a redundant **IPSec VPN Tunnel** to connect the OCI VCN securely to ACCOR's on-premises corporate datacentre where the production Oracle EBS instance is hosted.
+3. **Configure Firewall & Security Lists:**
+   * Configure OCI Network Security Groups (NSGs) to restrict database connections to private end-points only.
+
+### Phase 2: Real-time Data Replication (Read-Path)
+1. **Set Up Schema Replication via GoldenGate:**
+   * Provision **Oracle GoldenGate Serverless** inside the OCI tenancy.
+   * Install the GoldenGate replication agent on the on-premises EBS database.
+2. **Configure Unidirectional Sync:**
+   * Configure replication mapping to sync core EBS financial tables from the on-premises database to the OCI Autonomous Database (ATP 23ai/26ai) in real-time.
+   * Tables to sync include: `AP_INVOICES_ALL`, `AP_PAYMENT_SCHEDULES_ALL`, `HZ_PARTIES`, `PO_VENDORS`, `GL_BALANCES`, `GL_JE_HEADERS`, and `GL_JE_LINES`.
+3. **Map Vanilla EBS Views in OCI ATP:**
+   * Create standard views in the OCI ATP schema pointing to the replicated tables. This maps simple structures to standard vanilla EBS naming schemas.
+   * *Example:*
+     ```sql
+     CREATE OR REPLACE VIEW AP_INVOICES_ALL AS 
+     SELECT invoice_id, invoice_num, vendor_id, invoice_amount, invoice_currency_code, invoice_date, payment_status_flag, org_id 
+     FROM ACCOR_AP_INVOICES;
+     ```
+
+### Phase 3: REST API Gateway for Transaction Writes (Write-Path)
+1. **Expose Standard EBS Web Services:**
+   * Enable the appropriate standard APIs within the **Oracle EBS Integration Repository** (Integrated SOA Gateway - ISG).
+   * For invoice payments: Enable `AP_PAYMENT_PUBLIC_PKG` or construct a secure wrapper package exposing procedures for initiating payments.
+   * For general ledger entries: Enable the standard `GL_JOURNAL_IMPORT` interface.
+2. **Provision OIC Connectivity Agent:**
+   * Deploy **Oracle Integration Cloud (OIC)** in your OCI tenancy.
+   * Install the **OIC Connectivity Agent** inside the on-premises corporate datacentre network to act as a secure proxy to local EBS services.
+3. **Expose Secure OIC REST Endpoints:**
+   * Create OIC integration mappings that expose a secure HTTPS REST endpoint (e.g. `POST /api/v1/accor/ebs/pay-invoice`). OIC intercepts the JSON payload, transforms it to PL/SQL parameter bounds, executes the on-premise EBS API, and returns the response.
+
+### Phase 4: Stored Package Orchestration Updates
+1. **Replace Raw DML with Outward API Callout:**
+   * In `ACCOR_EBS_BOT_PKG`, update the `CONFIRM` handler block. Remove the direct database DML statement:
+     ```sql
+     -- Stale DML:
+     -- UPDATE ACCOR_AP_INVOICES SET status = 'paid' WHERE invoice_id = v_invoice_id;
+     ```
+   * Replace it with an APEX Web Service REST callout invoking the OIC HTTPS REST Endpoint:
+     ```sql
+     -- Production REST Callout:
+     v_response_json := APEX_WEB_SERVICE.make_rest_request(
+         p_url         => 'https://oic-instance.tenant.integration.ocp.oraclecloud.com/integration/flowapi/rest/pay_invoice/v1/',
+         p_http_method => 'POST',
+         p_body        => v_payload_json,
+         p_username    => 'OIC_SSO_USER',
+         p_password    => 'OIC_OAUTH_TOKEN'
+     );
+     ```
+2. **Setup SSL Certs & Security Wallet:**
+   * Download the SSL certificates for the OIC gateway and register them in the OCI Autonomous Database security wallet to authorize outbound HTTPS connections from APEX.
+
+---
+
 ## Verification Plan
 
 ### Automated Verification

@@ -13,13 +13,16 @@ END ACCOR_EBS_BOT_PKG;
 
 CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
 
-    -- Helper to format AP aging results for a property into a markdown table
+    -- Helper to format AP aging results for a property into an HTML table
     FUNCTION format_ap_aging (p_property_id IN VARCHAR2) RETURN VARCHAR2 IS
         v_table VARCHAR2(32767);
         v_count INTEGER := 0;
     BEGIN
-        v_table := '| Invoice ID | Invoice Number | Vendor | Amount | Due Date | Status |' || CHR(10) ||
-                   '| --- | --- | --- | --- | --- | --- |' || CHR(10);
+        v_table := '<h3>Accounts Payable (AP) Aging Report</h3>' ||
+                   '<table>' ||
+                   '<thead><tr>' ||
+                   '<th>Invoice ID</th><th>Invoice Number</th><th>Vendor</th><th>Amount</th><th>Due Date</th><th>Status</th>' ||
+                   '</tr></thead><tbody>';
 
         FOR r IN (
             SELECT i.invoice_id, i.invoice_number, v.name AS vendor_name, i.amount, i.currency, i.due_date, i.status
@@ -29,25 +32,35 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
              ORDER BY i.due_date ASC
         ) LOOP
             v_count := v_count + 1;
-            v_table := v_table || '| ' || r.invoice_id || ' | ' || r.invoice_number || ' | ' || r.vendor_name || ' | ' || 
-                       TO_CHAR(r.amount, 'FM999,999,990.00') || ' ' || r.currency || ' | ' || 
-                       TO_CHAR(r.due_date, 'YYYY-MM-DD') || ' | ' || r.status || ' |' || CHR(10);
+            v_table := v_table || '<tr>' ||
+                       '<td>' || r.invoice_id || '</td>' ||
+                       '<td>' || r.invoice_number || '</td>' ||
+                       '<td>' || r.vendor_name || '</td>' ||
+                       '<td>' || TO_CHAR(r.amount, 'FM999,999,990.00') || ' ' || r.currency || '</td>' ||
+                       '<td>' || TO_CHAR(r.due_date, 'YYYY-MM-DD') || '</td>' ||
+                       '<td>' || r.status || '</td>' ||
+                       '</tr>';
         END LOOP;
 
+        v_table := v_table || '</tbody></table>';
+
         IF v_count = 0 THEN
-            RETURN 'No accounts payable invoices found for this property.';
+            RETURN '<p>No accounts payable invoices found for this property.</p>';
         END IF;
 
-        RETURN '### Accounts Payable (AP) Aging Report' || CHR(10) || v_table;
+        RETURN v_table;
     END format_ap_aging;
 
-    -- Helper to format GL balances into a markdown table
+    -- Helper to format GL balances into an HTML table
     FUNCTION format_gl_balances RETURN VARCHAR2 IS
         v_table VARCHAR2(32767);
         v_count INTEGER := 0;
     BEGIN
-        v_table := '| Account Code | Account Name | Type | Balance | Currency |' || CHR(10) ||
-                   '| --- | --- | --- | --- | --- |' || CHR(10);
+        v_table := '<h3>General Ledger Cash & Balances Summary</h3>' ||
+                   '<table>' ||
+                   '<thead><tr>' ||
+                   '<th>Account Code</th><th>Account Name</th><th>Type</th><th>Balance</th><th>Currency</th>' ||
+                   '</tr></thead><tbody>';
 
         FOR r IN (
             SELECT code, name, type, balance, currency
@@ -55,23 +68,33 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
              ORDER BY code ASC
         ) LOOP
             v_count := v_count + 1;
-            v_table := v_table || '| ' || r.code || ' | ' || r.name || ' | ' || r.type || ' | ' || 
-                       TO_CHAR(r.balance, 'FM999,999,990.00') || ' | ' || r.currency || ' |' || CHR(10);
+            v_table := v_table || '<tr>' ||
+                       '<td>' || r.code || '</td>' ||
+                       '<td>' || r.name || '</td>' ||
+                       '<td>' || r.type || '</td>' ||
+                       '<td>' || TO_CHAR(r.balance, 'FM999,999,990.00') || '</td>' ||
+                       '<td>' || r.currency || '</td>' ||
+                       '</tr>';
         END LOOP;
 
+        v_table := v_table || '</tbody></table>';
+
         IF v_count = 0 THEN
-            RETURN 'No Chart of Accounts found.';
+            RETURN '<p>No Chart of Accounts found.</p>';
         END IF;
 
-        RETURN '### General Ledger Cash & Balances Summary' || CHR(10) || v_table;
+        RETURN v_table;
     END format_gl_balances;
 
-    -- Helper to format consolidated summary
+    -- Helper to format consolidated summary into an HTML table
     FUNCTION format_consolidated_summary RETURN VARCHAR2 IS
         v_table VARCHAR2(32767);
     BEGIN
-        v_table := '| Property Name | Currency | Total AP (Unpaid) | Total AR (Unpaid) |' || CHR(10) ||
-                   '| --- | --- | --- | --- |' || CHR(10);
+        v_table := '<h3>Consolidated Portfolio Financial Summary</h3>' ||
+                   '<table>' ||
+                   '<thead><tr>' ||
+                   '<th>Property Name</th><th>Currency</th><th>Total AP (Unpaid)</th><th>Total AR (Unpaid)</th>' ||
+                   '</tr></thead><tbody>';
 
         FOR r IN (
             SELECT p.name AS property_name, p.currency,
@@ -80,12 +103,16 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
               FROM ACCOR_PROPERTIES p
              ORDER BY p.name ASC
         ) LOOP
-            v_table := v_table || '| ' || r.property_name || ' | ' || r.currency || ' | ' || 
-                       TO_CHAR(r.total_ap, 'FM999,999,990.00') || ' | ' || 
-                       TO_CHAR(r.total_ar, 'FM999,999,990.00') || ' |' || CHR(10);
+            v_table := v_table || '<tr>' ||
+                       '<td>' || r.property_name || '</td>' ||
+                       '<td>' || r.currency || '</td>' ||
+                       '<td>' || TO_CHAR(r.total_ap, 'FM999,999,990.00') || '</td>' ||
+                       '<td>' || TO_CHAR(r.total_ar, 'FM999,999,990.00') || '</td>' ||
+                       '</tr>';
         END LOOP;
 
-        RETURN '### Consolidated Portfolio Financial Summary' || CHR(10) || v_table;
+        v_table := v_table || '</tbody></table>';
+        RETURN v_table;
     END format_consolidated_summary;
 
     -- Core chat message processing function
@@ -110,20 +137,20 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
         v_invoice_amount    NUMBER(15,2);
         v_invoice_status    VARCHAR2(30);
     BEGIN
-        -- Find user_id
-        SELECT user_id INTO v_user_id FROM ACCOR_USERS WHERE email = p_email;
+        -- Find user_id case-insensitively
+        SELECT user_id INTO v_user_id FROM ACCOR_USERS WHERE UPPER(email) = UPPER(p_email);
 
         -- Save user query in conversation log
         INSERT INTO ACCOR_CONVERSATIONS (conversation_id, user_id, thread_id, role, message_content, timestamp)
-        VALUES ('chat_msg_' || SUBSTR(SYS_GUID(), 1, 8), v_user_id, p_thread_id, 'user', p_message, SYSTIMESTAMP);
+        VALUES ('chat_msg_' || SYS_GUID(), v_user_id, p_thread_id, 'user', p_message, SYSTIMESTAMP);
 
         -- 1. Threat Detection (SQL/Prompt Injection)
         IF ACCOR_IAM_VALIDATOR_PKG.detect_injection(p_message) THEN
             ACCOR_IAM_VALIDATOR_PKG.log_audit(p_email, 'INJECTION_ATTEMPT', p_message, 'blocked', 'SQL or Prompt injection signatures detected.');
-            v_reply := '⚠️ **Security Threat Detected:** The input query contains illegal SQL segments or jailbreak signatures and has been blocked. This incident has been logged in the audit trail.';
+            v_reply := '⚠️ <strong>Security Threat Detected:</strong> The input query contains illegal SQL segments or jailbreak signatures and has been blocked. This incident has been logged in the audit trail.';
             
             INSERT INTO ACCOR_CONVERSATIONS (conversation_id, user_id, thread_id, role, message_content, timestamp)
-            VALUES ('chat_msg_' || SUBSTR(SYS_GUID(), 1, 8), v_user_id, p_thread_id, 'bot', v_reply, SYSTIMESTAMP);
+            VALUES ('chat_msg_' || SYS_GUID(), v_user_id, p_thread_id, 'bot', v_reply, SYSTIMESTAMP);
             
             RETURN JSON_OBJECT(
                 'reply' VALUE v_reply,
@@ -142,10 +169,10 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
         v_validation_res := ACCOR_IAM_VALIDATOR_PKG.validate_action(p_email, p_ebs_role, v_action, p_property_id);
         IF v_validation_res != 'ALLOWED' THEN
             ACCOR_IAM_VALIDATOR_PKG.log_audit(p_email, CASE WHEN v_action = 'write' THEN 'PAYMENT_APPROVAL' ELSE 'READ_QUERY' END, p_message, 'blocked', v_validation_res);
-            v_reply := '❌ **Access Denied (OCI IAM Validator Refusal):** ' || SUBSTR(v_validation_res, 9);
+            v_reply := '❌ <strong>Access Denied (OCI IAM Validator Refusal):</strong> ' || SUBSTR(v_validation_res, 9);
             
             INSERT INTO ACCOR_CONVERSATIONS (conversation_id, user_id, thread_id, role, message_content, timestamp)
-            VALUES ('chat_msg_' || SUBSTR(SYS_GUID(), 1, 8), v_user_id, p_thread_id, 'bot', v_reply, SYSTIMESTAMP);
+            VALUES ('chat_msg_' || SYS_GUID(), v_user_id, p_thread_id, 'bot', v_reply, SYSTIMESTAMP);
             
             RETURN JSON_OBJECT(
                 'reply' VALUE v_reply,
@@ -156,7 +183,7 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
         END IF;
 
         -- 4. Parse Intent & Execute
-        IF UPPER(p_message) LIKE '%AP AGING%' OR UPPER(p_message) LIKE '%AGING%' THEN
+        IF UPPER(p_message) LIKE '%AP AGING%' OR UPPER(p_message) LIKE '%AGING%' OR UPPER(p_message) LIKE '%OVERDUE%' THEN
             v_intent := 'ap_aging';
             v_reply := format_ap_aging(p_property_id);
             ACCOR_IAM_VALIDATOR_PKG.log_audit(p_email, 'READ_QUERY', 'AP Aging Query for property: ' || p_property_id, 'allowed', 'Success');
@@ -188,17 +215,17 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
                  WHERE invoice_id = v_invoice_id;
             EXCEPTION
                 WHEN NO_DATA_FOUND THEN
-                    v_reply := '❌ **Error:** Invoice ID `' || v_invoice_id || '` was not found in the Autonomous Database.';
+                    v_reply := '❌ <strong>Error:</strong> Invoice ID `' || v_invoice_id || '` was not found in the Autonomous Database.';
                     RETURN JSON_OBJECT('reply' VALUE v_reply, 'requires_approval' VALUE false, 'approval_payload' VALUE NULL, 'intent' VALUE v_intent);
             END;
 
             IF v_invoice_status = 'paid' THEN
-                v_reply := 'ℹ️ **Status Check:** Invoice `' || v_invoice_num || '` (ID: ' || v_invoice_id || ') is already marked as **paid**.';
+                v_reply := 'ℹ️ <strong>Status Check:</strong> Invoice `' || v_invoice_num || '` (ID: ' || v_invoice_id || ') is already marked as <strong>paid</strong>.';
                 ACCOR_IAM_VALIDATOR_PKG.log_audit(p_email, 'PAYMENT_APPROVAL', 'Payment check for ' || v_invoice_id, 'allowed', 'Invoice already paid');
             ELSE
                 -- Enforce Gated Confirmation payload
                 v_requires_approval := 'true';
-                v_reply := '💼 **Payment Approval Confirmation Required:** You are requesting to approve payment for invoice **' || v_invoice_num || '** (ID: ' || v_invoice_id || ') in amount of **EUR ' || TO_CHAR(v_invoice_amount, 'FM999,990.00') || '**. Please authorize the transaction in the APEX confirmation dialog.';
+                v_reply := '💼 <strong>Payment Approval Confirmation Required:</strong> You are requesting to approve payment for invoice <strong>' || v_invoice_num || '</strong> (ID: ' || v_invoice_id || ') in amount of <strong>EUR ' || TO_CHAR(v_invoice_amount, 'FM999,990.00') || '</strong>. Please authorize the transaction in the APEX confirmation dialog.';
                 v_approval_payload := JSON_OBJECT(
                     'action' VALUE 'pay_invoice',
                     'invoice_id' VALUE v_invoice_id,
@@ -212,14 +239,17 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
             
             -- Find the last thread action details
             BEGIN
-                SELECT REGEXP_SUBSTR(message_content, 'ap_inv_[0-9]+')
+                SELECT invoice_id
                   INTO v_invoice_id
-                  FROM ACCOR_CONVERSATIONS
-                 WHERE thread_id = p_thread_id 
-                   AND role = 'bot' 
-                   AND message_content LIKE '%Payment Approval Confirmation Required%'
-                 ORDER BY timestamp DESC
-                 FETCH FIRST 1 ROWS ONLY;
+                  FROM (
+                      SELECT REGEXP_SUBSTR(message_content, 'ap_inv_[0-9]+') AS invoice_id
+                        FROM ACCOR_CONVERSATIONS
+                       WHERE thread_id = p_thread_id 
+                         AND role = 'bot' 
+                         AND message_content LIKE '%Payment Approval Confirmation Required%'
+                       ORDER BY timestamp DESC
+                  )
+                 WHERE ROWNUM = 1;
             EXCEPTION
                 WHEN NO_DATA_FOUND THEN
                     v_invoice_id := NULL;
@@ -235,7 +265,7 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
                  
                 SELECT invoice_number, amount INTO v_invoice_num, v_invoice_amount FROM ACCOR_AP_INVOICES WHERE invoice_id = v_invoice_id;
                 
-                v_reply := '✅ **Payment Approved Successfully:** Invoice `' || v_invoice_num || '` (ID: ' || v_invoice_id || ') for **EUR ' || TO_CHAR(v_invoice_amount, 'FM999,990.00') || '** has been paid. Status updated in Autonomous ATP Database.';
+                v_reply := '✅ <strong>Payment Approved Successfully:</strong> Invoice `' || v_invoice_num || '` (ID: ' || v_invoice_id || ') for <strong>EUR ' || TO_CHAR(v_invoice_amount, 'FM999,990.00') || '</strong> has been paid. Status updated in Autonomous ATP Database.';
                 ACCOR_IAM_VALIDATOR_PKG.log_audit(p_email, 'DML_EXECUTION', 'Payment confirmed and updated for ' || v_invoice_id, 'allowed', 'Success');
                 COMMIT;
             END IF;
@@ -243,28 +273,27 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
         ELSE
             -- Attempt Select AI Translation (OpenAI/OCI GenAI)
             BEGIN
-                -- Execute stateless generation using the configured Select AI profile
-                v_reply := DBMS_CLOUD_AI.GENERATE(
-                    prompt       => p_message,
-                    profile_name => 'ACCOR_BOT_PROFILE'
-                );
+                -- Execute dynamically so it compiles even on shared sandbox instances lacking DBMS_CLOUD_AI
+                EXECUTE IMMEDIATE 'BEGIN :1 := DBMS_CLOUD_AI.GENERATE(prompt => :2, profile_name => :3); END;'
+                USING OUT v_reply, IN p_message, IN 'ACCOR_BOT_PROFILE';
+                
                 v_intent := 'select_ai_response';
                 ACCOR_IAM_VALIDATOR_PKG.log_audit(p_email, 'READ_QUERY', 'Select AI Prompt: ' || SUBSTR(p_message, 1, 1000), 'allowed', 'Success via Select AI');
             EXCEPTION
                 WHEN OTHERS THEN
-                    -- Catch-all fallback if Select AI profile is not configured or LLM fails
-                    v_reply := 'Hello! I am the **ACCOR EBS Finance Orchestrator**. I can securely assist you with your Corporate Finance tasks.' || CHR(10) ||
-                               '* **Analyze AP:** Type `"Show AP aging"` to inspect overdue vendor invoices.' || CHR(10) ||
-                               '* **Check GL:** Type `"Show GL cash balance"` to view account summaries.' || CHR(10) ||
-                               '* **Portfolio Health:** Type `"Check consolidated summary"` to query multi-property scopes.' || CHR(10) ||
-                               '* **Approve Payments:** Type `"Approve payment for ap_inv_1001"` to execute transaction runs (Manager role only).' || CHR(10) ||
-                               '(Note: Select AI / DBMS_CLOUD_AI translation profile ACCOR_BOT_PROFILE is not configured or raised: ' || SQLERRM || ')';
+                    -- Catch-all fallback if Select AI profile is not configured, is restricted, or LLM fails
+                    v_reply := 'Hello! I am the **ACCOR EBS Finance Orchestrator**. I can securely assist you with your Corporate Finance tasks:' || CHR(10) || CHR(10) ||
+                               '* **Analyze AP:** Click **📊 AP Aging** or type `"Show AP aging"` to inspect overdue vendor invoices.' || CHR(10) ||
+                               '* **Check GL:** Click **💰 GL Balances** or type `"Show GL cash balance"` to view account summaries.' || CHR(10) ||
+                               '* **Portfolio Health:** Click **🏢 Portfolio** or type `"Check consolidated summary"` to query multi-property scopes.' || CHR(10) ||
+                               '* **Approve Payments:** Type `"Approve payment for ap_inv_1001"` to execute gated DML transaction runs (Manager role only).' || CHR(10) || CHR(10) ||
+                               '*(Note: Database Select AI translation is disabled on this sandbox schema. Running in offline pattern-route mode.)*';
             END;
         END IF;
 
         -- Save bot reply in conversation log
         INSERT INTO ACCOR_CONVERSATIONS (conversation_id, user_id, thread_id, role, message_content, timestamp)
-        VALUES ('chat_msg_' || SUBSTR(SYS_GUID(), 1, 8), v_user_id, p_thread_id, 'bot', v_reply, SYSTIMESTAMP);
+        VALUES ('chat_msg_' || SYS_GUID(), v_user_id, p_thread_id, 'bot', v_reply, SYSTIMESTAMP);
         COMMIT;
 
         -- Return payload as JSON string
