@@ -76,6 +76,16 @@ BEGIN
     );
     assert(v_result LIKE '%ap_aging%' AND v_result LIKE '%INV-LCS-091%', 'Bot returns JSON containing AP Aging markdown table');
 
+    -- Test Short Username Query (case-insensitive prefix matching)
+    v_result := ACCOR_EBS_BOT_PKG.process_chat_message(
+        p_email => 'ANALYST',
+        p_ebs_role => 'Finance Analyst',
+        p_message => 'Show AP aging',
+        p_property_id => 'prop_novotel_paris',
+        p_thread_id => v_thread_id
+    );
+    assert(v_result LIKE '%ap_aging%' AND v_result LIKE '%INV-LCS-091%', 'Bot returns JSON containing AP Aging for short username ANALYST');
+
     -- Test Payment Gated Approval Workflow
     v_result := ACCOR_EBS_BOT_PKG.process_chat_message(
         p_email => 'manager@accor.com',

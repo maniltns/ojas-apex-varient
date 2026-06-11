@@ -21,7 +21,7 @@ BEGIN
     BEGIN
         SELECT ebs_role INTO v_role
         FROM ACCOR_USERS
-        WHERE UPPER(email) = UPPER(v_email);
+        WHERE UPPER(email) = UPPER(v_email) OR UPPER(email) LIKE UPPER(v_email) || '@%';
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
             v_role := 'Finance Analyst';

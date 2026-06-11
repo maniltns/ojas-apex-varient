@@ -36,6 +36,7 @@
 | AD-05 | **Autonomous Auditing** | Threat detection logs are written inside `ACCOR_AUDIT_LOG` via `PRAGMA AUTONOMOUS_TRANSACTION` to ensure logging regardless of parent rollback events. | 2026-06-10 |
 | AD-06 | **Gated DML Payment Workflows** | Write operations require an explicit `CONFIRM` prompt following a bot-generated verification token to prevent accidental database mutations. | 2026-06-10 |
 | AD-07 | **Select AI Provider Independence** | Select AI profiles (`ACCOR_BOT_PROFILE`) can toggle between OCI Generative AI, OpenAI, and Google Gemini via metadata changes without package recompilation. | 2026-06-10 |
+| AD-08 | **Case-Insensitive Short Username Mapping** | Aligned database package lookups and APEX AJAX callbacks to support case-insensitive email-prefix pattern matching, resolving discrepancies between APEX usernames and OCI IAM directory records. | 2026-06-11 |
 
 ---
 
@@ -46,6 +47,7 @@
 * **[accor_ebs_security_pkg.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/accor_ebs_security_pkg.sql)**: Implements validation checks (restricts analysts to read-only actions, keeps managers within property scopes, blocks prompt/SQL injections). (Status: **Completed**)
 * **[accor_ebs_bot_pkg.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/accor_ebs_bot_pkg.sql)**: Implements intent classification (AP aging, GL balances, consolidated portfolio, and gated payment execution). Falls back to Select AI `DBMS_CLOUD_AI.GENERATE` for generic prompts. (Status: **Completed**)
 * **[test_accor_ebs_bot.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/test_accor_ebs_bot.sql)**: Automated DDL / package boundary tests. (Status: **Completed**)
+* **[update_short_usernames.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/update_short_usernames.sql)**: Consolidated migration/update script to compile packages and provide reference code for Page 2 AJAX Callbacks. (Status: **Completed**)
 
 ### 2. APEX App Tier (`applications/accor_ebs_bot/`)
 * **[application.apx](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/applications/accor_ebs_bot/application.apx)**: Global application configuration. (Status: **Completed**)
@@ -71,3 +73,4 @@
   * `APEXLANG_LOCAL_CHECK_OK`
 * **LOB comparison fix:** Aliased the column in Page 2 dynamic content to avoid linter regex bugs with raw LOB comparison checks.
 * **Navigation check fix:** List item authorization rules configured via expressions using `apex_authorization.is_authorized` to bypass linter parser errors on nested security definitions.
+* **Short Username Mapping Alignment:** Verified successful compilation of both packages (`ACCOR_IAM_VALIDATOR_PKG` and `ACCOR_EBS_BOT_PKG`) and successful deployment of updated Page 2 AJAX Callbacks supporting prefix username lookups (e.g. `ANALYST` matching `analyst@accor.com`).

@@ -37,7 +37,7 @@ BEGIN
     v_thread_id := 'thread_' || :APP_SESSION;
     BEGIN
         SELECT user_id INTO v_user_id
-        FROM ACCOR_USERS WHERE UPPER(email) = UPPER(:APP_USER);
+        FROM ACCOR_USERS WHERE UPPER(email) = UPPER(:APP_USER) OR UPPER(email) LIKE UPPER(:APP_USER) || '@%';
     EXCEPTION WHEN NO_DATA_FOUND THEN v_user_id := NULL; END;
 
     APEX_JSON.OPEN_OBJECT;
@@ -79,7 +79,7 @@ BEGIN
 
     BEGIN
         SELECT ebs_role INTO v_role
-        FROM ACCOR_USERS WHERE UPPER(email) = UPPER(v_email);
+        FROM ACCOR_USERS WHERE UPPER(email) = UPPER(v_email) OR UPPER(email) LIKE UPPER(v_email) || '@%';
     EXCEPTION WHEN NO_DATA_FOUND THEN v_role := 'Finance Analyst'; END;
 
     IF v_prop IS NULL OR TRIM(v_prop) = '' THEN

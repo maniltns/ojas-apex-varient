@@ -1,16 +1,112 @@
-CREATE OR REPLACE PACKAGE ACCOR_EBS_BOT_PKG AS
-    -- Main entrypoint to process chatbot conversation messages
-    -- Returns a JSON string containing "reply", "requires_approval", "approval_payload", and "intent"
-    FUNCTION process_chat_message (
+-- ============================================================
+-- ACCOR EBS Finance Bot - Short Username Fixes & Updates
+-- Run this entire script in APEX SQL Workshop > SQL Commands
+-- to update the backend database package and get the updated APEX PL/SQL code.
+-- ============================================================
+
+-- ─────────────────────────────────────────────────────────────
+-- STEP 1: Re-compile ACCOR_IAM_VALIDATOR_PKG Body
+-- ─────────────────────────────────────────────────────────────
+CREATE OR REPLACE PACKAGE BODY ACCOR_IAM_VALIDATOR_PKG AS
+
+    FUNCTION detect_injection (
+        p_text IN VARCHAR2
+    ) RETURN BOOLEAN IS
+        v_upper_text VARCHAR2(4000);
+    BEGIN
+        IF p_text IS NULL THEN
+            RETURN FALSE;
+        END IF;
+
+        v_upper_text := UPPER(p_text);
+
+        -- 1. SQL Injection Signatures
+        IF v_upper_text LIKE '%OR 1=1%'
+           OR v_upper_text LIKE '%UNION SELECT%'
+           OR v_upper_text LIKE '%DROP TABLE%'
+           OR v_upper_text LIKE '%--%'
+           OR v_upper_text LIKE '%OR ''%''=''%''%'
+           -- 2. Prompt Injection Signatures
+           OR v_upper_text LIKE '%IGNORE PREVIOUS INSTRUCTIONS%'
+           OR v_upper_text LIKE '%IGNORE SYSTEM%'
+           OR v_upper_text LIKE '%SYS.DBMS_OUTPUT%'
+        THEN
+            RETURN TRUE;
+        END IF;
+
+        RETURN FALSE;
+    END detect_injection;
+
+    PROCEDURE log_audit (
+        p_email       IN VARCHAR2,
+        p_action_type IN VARCHAR2,
+        p_query_text  IN VARCHAR2,
+        p_status      IN VARCHAR2,
+        p_reason      IN VARCHAR2
+    ) IS
+        PRAGMA AUTONOMOUS_TRANSACTION;
+        v_user_id VARCHAR2(50);
+    BEGIN
+        -- Attempt to resolve user_id
+        BEGIN
+            SELECT user_id INTO v_user_id 
+              FROM ACCOR_USERS 
+             WHERE UPPER(email) = UPPER(p_email) OR UPPER(email) LIKE UPPER(p_email) || '@%';
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                v_user_id := 'accor_usr_unknown';
+        END;
+
+        INSERT INTO ACCOR_AUDIT_LOG (user_id, email, action_type, query_text, status, reason, timestamp)
+        VALUES (v_user_id, p_email, p_action_type, p_query_text, p_status, p_reason, SYSTIMESTAMP);
+
+        COMMIT;
+    END log_audit;
+
+    FUNCTION validate_action (
         p_email       IN VARCHAR2,
         p_ebs_role    IN VARCHAR2,
-        p_message     IN VARCHAR2,
-        p_property_id IN VARCHAR2,
-        p_thread_id   IN VARCHAR2
-    ) RETURN VARCHAR2;
-END ACCOR_EBS_BOT_PKG;
+        p_action      IN VARCHAR2,
+        p_property_id IN VARCHAR2
+    ) RETURN VARCHAR2 IS
+        v_role            VARCHAR2(50);
+        v_property_access VARCHAR2(4000);
+    BEGIN
+        -- Find user context
+        BEGIN
+            SELECT role, property_access 
+              INTO v_role, v_property_access
+              FROM ACCOR_USERS 
+             WHERE UPPER(email) = UPPER(p_email) OR UPPER(email) LIKE UPPER(p_email) || '@%';
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                RETURN 'BLOCKED: User not found in OCI IAM Directory';
+        END;
+
+        -- Admins bypass property validation
+        IF v_role = 'admin' THEN
+            RETURN 'ALLOWED';
+        END IF;
+
+        -- Validate property boundary (comma-separated list search)
+        IF INSTR(v_property_access, p_property_id) = 0 THEN
+            RETURN 'BLOCKED: EBS role has no permission context for property ID: ' || p_property_id;
+        END IF;
+
+        -- Validate analyst role write restrictions
+        IF LOWER(p_action) = 'write' AND v_role = 'finance_analyst' THEN
+            RETURN 'BLOCKED: Write operation denied: Finance Analyst role is restricted to READ queries only';
+        END IF;
+
+        RETURN 'ALLOWED';
+    END validate_action;
+
+END ACCOR_IAM_VALIDATOR_PKG;
 /
 
+-- ─────────────────────────────────────────────────────────────
+-- STEP 2: Re-compile ACCOR_EBS_BOT_PKG Body
+-- ─────────────────────────────────────────────────────────────
 CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
 
     -- Helper to format AP aging results for a property into an HTML table
@@ -65,7 +161,7 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
         FOR r IN (
             SELECT code, name, type, balance, currency
               FROM ACCOR_GL_ACCOUNTS
-             ORDER BY code ASC
+              ORDER BY code ASC
         ) LOOP
             v_count := v_count + 1;
             v_table := v_table || '<tr>' ||
@@ -137,8 +233,10 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
         v_invoice_amount    NUMBER(15,2);
         v_invoice_status    VARCHAR2(30);
     BEGIN
-        -- Find user_id case-insensitively
-        SELECT user_id INTO v_user_id FROM ACCOR_USERS WHERE UPPER(email) = UPPER(p_email) OR UPPER(email) LIKE UPPER(p_email) || '@%';
+        -- Find user_id case-insensitively with prefix pattern matching for short usernames
+        SELECT user_id INTO v_user_id 
+          FROM ACCOR_USERS 
+         WHERE UPPER(email) = UPPER(p_email) OR UPPER(email) LIKE UPPER(p_email) || '@%';
 
         -- Save user query in conversation log
         INSERT INTO ACCOR_CONVERSATIONS (conversation_id, user_id, thread_id, role, message_content, timestamp)
@@ -283,11 +381,11 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
                 WHEN OTHERS THEN
                     -- Catch-all fallback if Select AI profile is not configured, is restricted, or LLM fails
                     v_reply := 'Hello! I am the **ACCOR EBS Finance Orchestrator**. I can securely assist you with your Corporate Finance tasks:' || CHR(10) || CHR(10) ||
-                               '* **Analyze AP:** Click **📊 AP Aging** or type `"Show AP aging"` to inspect overdue vendor invoices.' || CHR(10) ||
-                               '* **Check GL:** Click **💰 GL Balances** or type `"Show GL cash balance"` to view account summaries.' || CHR(10) ||
-                               '* **Portfolio Health:** Click **🏢 Portfolio** or type `"Check consolidated summary"` to query multi-property scopes.' || CHR(10) ||
-                               '* **Approve Payments:** Type `"Approve payment for ap_inv_1001"` to execute gated DML transaction runs (Manager role only).' || CHR(10) || CHR(10) ||
-                               '*(Note: Database Select AI translation is disabled on this sandbox schema. Running in offline pattern-route mode.)*';
+                                '* **Analyze AP:** Click **📊 AP Aging** or type `"Show AP aging"` to inspect overdue vendor invoices.' || CHR(10) ||
+                                '* **Check GL:** Click **💰 GL Balances** or type `"Show GL cash balance"` to view account summaries.' || CHR(10) ||
+                                '* **Portfolio Health:** Click **🏢 Portfolio** or type `"Check consolidated summary"` to query multi-property scopes.' || CHR(10) ||
+                                '* **Approve Payments:** Type `"Approve payment for ap_inv_1001"` to execute gated DML transaction runs (Manager role only).' || CHR(10) || CHR(10) ||
+                                '*(Note: Database Select AI translation is disabled on this sandbox schema. Running in offline pattern-route mode.)*';
             END;
         END IF;
 
@@ -307,3 +405,195 @@ CREATE OR REPLACE PACKAGE BODY ACCOR_EBS_BOT_PKG AS
 
 END ACCOR_EBS_BOT_PKG;
 /
+
+
+-- ─────────────────────────────────────────────────────────────
+-- STEP 3: APEX Page 2 PL/SQL Definitions (For reference & copy-paste)
+-- ─────────────────────────────────────────────────────────────
+
+-- A. APEX Page 2 AJAX Callback: LOAD_CHAT
+-- Go to Page Designer > Page 2 > Ajax Callbacks > LOAD_CHAT > PL/SQL Code
+-- Paste the code below:
+
+-- DECLARE
+--     v_user_id   VARCHAR2(100);
+--     v_thread_id VARCHAR2(100);
+-- BEGIN
+--     v_thread_id := 'thread_' || :APP_SESSION;
+--     BEGIN
+--         SELECT user_id INTO v_user_id
+--         FROM ACCOR_USERS 
+--         WHERE UPPER(email) = UPPER(:APP_USER) OR UPPER(email) LIKE UPPER(:APP_USER) || '@%';
+--     EXCEPTION WHEN NO_DATA_FOUND THEN v_user_id := NULL; END;
+-- 
+--     APEX_JSON.OPEN_OBJECT;
+--     APEX_JSON.OPEN_ARRAY('messages');
+--     IF v_user_id IS NOT NULL THEN
+--         FOR r IN (
+--             SELECT role, message_content AS content
+--             FROM ACCOR_CONVERSATIONS
+--             WHERE user_id = v_user_id
+--             AND thread_id = v_thread_id
+--             ORDER BY timestamp ASC
+--         ) LOOP
+--             APEX_JSON.OPEN_OBJECT;
+--             APEX_JSON.WRITE('role',    r.role);
+--             APEX_JSON.WRITE('content', r.content);
+--             APEX_JSON.CLOSE_OBJECT;
+--         END LOOP;
+--     END IF;
+--     APEX_JSON.CLOSE_ARRAY;
+--     APEX_JSON.CLOSE_OBJECT;
+-- END;
+
+
+-- B. APEX Page 2 AJAX Callback: PROCESS_CHAT
+-- Go to Page Designer > Page 2 > Ajax Callbacks > PROCESS_CHAT > PL/SQL Code
+-- Paste the code below:
+
+-- DECLARE
+--     v_result     VARCHAR2(32767);
+--     v_email      VARCHAR2(200);
+--     v_role       VARCHAR2(100);
+--     v_thread_id  VARCHAR2(100);
+--     v_msg        VARCHAR2(4000);
+--     v_prop       VARCHAR2(100);
+-- BEGIN
+--     v_email     := :APP_USER;
+--     v_thread_id := 'thread_' || :APP_SESSION;
+--     v_msg       := APEX_APPLICATION.G_X01;
+--     v_prop      := APEX_APPLICATION.G_X02;
+-- 
+--     BEGIN
+--         SELECT ebs_role INTO v_role
+--         FROM ACCOR_USERS 
+--         WHERE UPPER(email) = UPPER(v_email) OR UPPER(email) LIKE UPPER(v_email) || '@%';
+--     EXCEPTION WHEN NO_DATA_FOUND THEN v_role := 'Finance Analyst'; END;
+-- 
+--     IF v_prop IS NULL OR TRIM(v_prop) = '' THEN
+--         v_prop := 'prop_novotel_paris';
+--     END IF;
+-- 
+--     v_result := ACCOR_EBS_BOT_PKG.process_chat_message(
+--         p_email       => v_email,
+--         p_ebs_role    => v_role,
+--         p_message     => v_msg,
+--         p_property_id => v_prop,
+--         p_thread_id   => v_thread_id
+--     );
+-- 
+--     -- Parse JSON result and forward to UI
+--     DECLARE
+--         v_reply   VARCHAR2(32767);
+--         v_intent  VARCHAR2(200);
+--         v_req_ap  VARCHAR2(10);
+--         v_ap_json VARCHAR2(4000);
+--     BEGIN
+--         v_reply   := JSON_VALUE(v_result, '$.reply');
+--         v_intent  := JSON_VALUE(v_result, '$.intent');
+--         v_req_ap  := JSON_VALUE(v_result, '$.requires_approval');
+-- 
+--         APEX_JSON.OPEN_OBJECT;
+--         APEX_JSON.WRITE('status', 'success');
+--         APEX_JSON.WRITE('reply',  NVL(v_reply, v_result));
+--         APEX_JSON.WRITE('intent', NVL(v_intent, ''));
+--         APEX_JSON.WRITE('requires_approval', NVL(v_req_ap, 'false') = 'true');
+-- 
+--         -- Include approval payload if present
+--         BEGIN
+--             v_ap_json := JSON_QUERY(v_result, '$.approval_payload');
+--             IF v_ap_json IS NOT NULL THEN
+--                 APEX_JSON.WRITE_RAW('approval_payload', v_ap_json);
+--             END IF;
+--         EXCEPTION WHEN OTHERS THEN NULL; END;
+-- 
+--         APEX_JSON.CLOSE_OBJECT;
+--     EXCEPTION WHEN OTHERS THEN
+--         APEX_JSON.OPEN_OBJECT;
+--         APEX_JSON.WRITE('status', 'success');
+--         APEX_JSON.WRITE('reply',  v_result);
+--         APEX_JSON.WRITE('requires_approval', FALSE);
+--         APEX_JSON.CLOSE_OBJECT;
+--     END;
+-- 
+-- EXCEPTION WHEN OTHERS THEN
+--     APEX_JSON.OPEN_OBJECT;
+--     APEX_JSON.WRITE('status',  'error');
+--     APEX_JSON.WRITE('message', SQLERRM);
+--     APEX_JSON.CLOSE_OBJECT;
+-- END;
+
+
+-- C. APEX Page 2 Chat Feed Region: PL/SQL Function Body
+-- Go to Page Designer > Page 2 > CHAT_FEED region > Source > PL/SQL Function Body
+-- Paste the code below:
+
+-- DECLARE
+--     v_html      CLOB := '';
+--     v_user_id   VARCHAR2(100);
+--     v_thread_id VARCHAR2(100);
+-- BEGIN
+--     v_thread_id := 'thread_' || :APP_SESSION;
+-- 
+--     -- Get logged-in user ID
+--     BEGIN
+--         SELECT user_id INTO v_user_id
+--         FROM ACCOR_USERS
+--         WHERE UPPER(email) = UPPER(:APP_USER) OR UPPER(email) LIKE UPPER(:APP_USER) || '@%';
+--     EXCEPTION
+--         WHEN NO_DATA_FOUND THEN v_user_id := NULL;
+--     END;
+-- 
+--     -- Render conversation history
+--     IF v_user_id IS NOT NULL THEN
+--         FOR r IN (
+--             SELECT role, message_content
+--             FROM ACCOR_CONVERSATIONS
+--             WHERE user_id = v_user_id
+--             AND thread_id = v_thread_id
+--             ORDER BY timestamp ASC
+--         ) LOOP
+--             IF r.role = 'user' THEN
+--                 v_html := v_html || '<div class="chat-msg-user">' 
+--                           || APEX_ESCAPE.HTML(r.message_content) 
+--                           || '</div>';
+--             ELSE
+--                 -- Bot messages may contain markdown tables — render raw HTML
+--                 v_html := v_html || '<div class="chat-msg-bot">' 
+--                           || r.message_content 
+--                           || '</div>';
+--             END IF;
+--         END LOOP;
+--     END IF;
+-- 
+--     -- Welcome message if empty
+--     IF v_html IS NULL OR DBMS_LOB.GETLENGTH(v_html) = 0 THEN
+--         v_html := '<div class="chat-msg-bot">'
+--                || '<strong>👋 Welcome to ACCOR EBS Finance Bot!</strong><br/>'
+--                || 'I can help you with:<br/>'
+--                || '&bull; AP Aging reports by property<br/>'
+--                || '&bull; GL Account balances<br/>'
+--                || '&bull; Invoice payment approvals<br/>'
+--                || '&bull; Consolidated portfolio summaries<br/><br/>'
+--                || '<em>Select a property above and type your question below.</em>'
+--                || '</div>';
+--     END IF;
+-- 
+--     -- Render quick-action chips
+--     v_html := '<div class="chat-chip-bar">'
+--            || '<span class="chat-chip" onclick="sendChip(''Show AP Aging'')">📊 AP Aging</span>'
+--            || '<span class="chat-chip" onclick="sendChip(''Show GL Balances'')">💰 GL Balances</span>'
+--            || '<span class="chat-chip" onclick="sendChip(''Consolidated Summary'')">🏨 Portfolio</span>'
+--            || '</div>'
+--            || '<div id="chat-feed-container" class="chat-feed">'
+--            || v_html
+--            || '</div>'
+--            || '<script>var f=document.getElementById("chat-feed-container");if(f)f.scrollTop=f.scrollHeight;</script>';
+-- 
+--     RETURN TO_CLOB(v_html);
+-- 
+-- EXCEPTION
+--     WHEN OTHERS THEN
+--         RETURN TO_CLOB('<div class="chat-msg-bot" style="color:#f85149;">Error loading chat: ' 
+--                        || APEX_ESCAPE.HTML(SQLERRM) || '</div>');
+-- END;
