@@ -1,5 +1,12 @@
 # Native Oracle APEX & OCI Finance Conversational Bot — Implementation Plan
 
+> **RFP alignment note.** This document refers to **ACCOR Grandback** (the client's Oracle EBS 12.2.12
+> landscape). Code identifiers use the `GRANDBACK_*` prefix. The solution is delivered in three RFP
+> phases — Phase 1 (API-first / dynamic analytics, 80 use cases), Phase 2 (Knowledge & Context /
+> Vector Search, 30), Phase 3 (Agentic AI, 12). This POC builds a representative **Phase 1** subset.
+> Canonical references: [POC_IMPLEMENTATION_PLAN.md](POC_IMPLEMENTATION_PLAN.md) ·
+> [RFP_TRACEABILITY.md](RFP_TRACEABILITY.md).
+
 This implementation plan details the architecture, design, database schemas, PL/SQL packages, and APEXlang specifications required to build the **ACCOR EBS Finance Conversational Bot** natively inside the Oracle ecosystem (Oracle APEX and OCI Autonomous Database). 
 
 ---
@@ -11,9 +18,9 @@ Instead of hosting a standalone React/FastAPI mockup, the solution will run enti
 ```mermaid
 graph TD
     User([Finance User]) -->|1. HTTPS| APEX["Oracle APEX App - Page 2 Chat"]
-    APEX -->|2. AJAX callback - PL/SQL| Package["ACCOR_EBS_BOT_PKG"]
-    Package -->|3. Check Permissions| Security["ACCOR_IAM_VALIDATOR_PKG"]
-    Package -->|4. Log Security and Activity| Logs[("ACCOR_AUDIT_LOG")]
+    APEX -->|2. AJAX callback - PL/SQL| Package["GRANDBACK_BOT_PKG"]
+    Package -->|3. Check Permissions| Security["GRANDBACK_IAM_PKG"]
+    Package -->|4. Log Security and Activity| Logs[("GRANDBACK_AUDIT_LOG")]
     Package -->|5. Translate NL to SQL| SelectAI["Oracle Select AI"]
     SelectAI -->|6. Query EBS Replica| EBS[("EBS Replica Tables - AP AR GL")]
     Package -->|7. Return MD Tables and Visual Flow| APEX
@@ -35,8 +42,8 @@ graph TD
         
         subgraph "OCI Autonomous Database ATP 23ai"
             EBS_Rep[("EBS Replica Schemas")]
-            Bot_Pkg["PL/SQL Orchestrator ACCOR_EBS_BOT_PKG"]
-            Security_Pkg["PL/SQL IAM Validator ACCOR_IAM_VALIDATOR_PKG"]
+            Bot_Pkg["PL/SQL Orchestrator GRANDBACK_BOT_PKG"]
+            Security_Pkg["PL/SQL IAM Validator GRANDBACK_IAM_PKG"]
             Select_AI["Select AI - DBMS_CLOUD_AI"]
         end
         
@@ -132,7 +139,7 @@ Follow these instructions to provision the OCI database, initialize the APEX Wor
 3. Click **Create Autonomous Database**.
 4. Configure the details:
    - **Compartment:** Select your preferred compartment (or root).
-   - **Display Name & Database Name:** Set both to `ACCOR_EBS_DB`.
+   - **Display Name & Database Name:** Set both to `GRANDBACK_EBS_DB`.
    - **Workload Type:** Select **Transaction Processing** (ATP).
    - **Deployment Type:** Select **Shared Infrastructure**.
    - **Database Version:** Choose **23ai** (required for native `DBMS_CLOUD_AI` Select AI translation).
@@ -151,16 +158,16 @@ Follow these instructions to provision the OCI database, initialize the APEX Wor
    - **Username:** `ADMIN`
    - **Password:** The password set during database creation.
 3. Click **Create Workspace** to define the development space:
-   - **Workspace Name:** `ACCOR_DEV`
-   - **Database User:** Create a new user named `ACCOR_SCHEMA`
+   - **Workspace Name:** `GRANDBACK_DEV`
+   - **Database User:** Create a new user named `GRANDBACK_SCHEMA`
    - **Password:** Define a strong schema password.
-4. Log out of `INTERNAL` and sign in to the new workspace `ACCOR_DEV` as user `ADMIN` or `ACCOR_SCHEMA` to import your APEX application files.
+4. Log out of `INTERNAL` and sign in to the new workspace `GRANDBACK_DEV` as user `ADMIN` or `GRANDBACK_SCHEMA` to import your APEX application files.
 
 ### 3. Database Schema Setup and PL/SQL Package Deployment
 Connect using SQLcl or execute scripts via **APEX SQL Workshop -> SQL Commands**:
-1. Run `schema_install.sql` to install all EBS tables (`ACCOR_USERS`, `ACCOR_AP_INVOICES`, etc.) and seed data.
-2. Run `accor_ebs_security_pkg.sql` to compile the `ACCOR_IAM_VALIDATOR_PKG` database package.
-3. Run `accor_ebs_bot_pkg.sql` to compile the `ACCOR_EBS_BOT_PKG` database package.
+1. Run `01_schema_install.sql` to install all EBS tables (`GRANDBACK_USERS`, `GRANDBACK_AP_INVOICES`, etc.) and seed data.
+2. Run `02_grandback_iam_pkg.sql` to compile the `GRANDBACK_IAM_PKG` database package.
+3. Run `03_grandback_bot_pkg.sql` to compile the `GRANDBACK_BOT_PKG` database package.
 
 ### 4. Configuring OCI GenAI/Select AI Credentials
 In the database, run the following PL/SQL block to register the LLM credentials and map the Select AI Profile:
@@ -168,15 +175,15 @@ In the database, run the following PL/SQL block to register the LLM credentials 
 BEGIN
   -- 1. Create API key credential
   DBMS_CLOUD.CREATE_CREDENTIAL(
-    credential_name => 'ACCOR_LLM_CREDENTIAL',
+    credential_name => 'GRANDBACK_LLM_CREDENTIAL',
     username        => 'API_KEY',
     password        => 'your_actual_llm_api_key_or_oci_token'
   );
   
   -- 2. Define the Select AI profile for NLP translation
   DBMS_CLOUD_AI.CREATE_PROFILE(
-    profile_name => 'ACCOR_BOT_PROFILE',
-    attributes   => '{"provider": "openai", "model": "gpt-4o", "credential_name": "ACCOR_LLM_CREDENTIAL"}'
+    profile_name => 'GRANDBACK_BOT_PROFILE',
+    attributes   => '{"provider": "openai", "model": "gpt-4o", "credential_name": "GRANDBACK_LLM_CREDENTIAL"}'
   );
 END;
 /
@@ -208,27 +215,27 @@ END;
 
 ### 1. Database Schemas & PL/SQL Backend
 
-#### [NEW] [schema_install.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/schema_install.sql)
+#### [NEW] [01_schema_install.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/01_schema_install.sql)
 * DDL to create tables:
-  * `ACCOR_USERS`: Email, password hash, role (`analyst`, `manager`, `admin`), ebs_role, assigned properties, and organization context.
-  * `ACCOR_PROPERTIES`: Property IDs, names, cities, currencies.
-  * `ACCOR_AP_INVOICES` & `ACCOR_AR_INVOICES`: Accounts Payable and Accounts Receivable records.
-  * `ACCOR_GL_ACCOUNTS`: General Ledger Chart of Accounts.
-  * `ACCOR_JOURNAL_ENTRIES` & `ACCOR_JOURNAL_LINES`: Journal transactions.
-  * `ACCOR_AUDIT_LOG`: Logs of chats, actions, and blocked security threats.
+  * `GRANDBACK_USERS`: Email, password hash, role (`analyst`, `manager`, `admin`), ebs_role, assigned properties, and organization context.
+  * `GRANDBACK_PROPERTIES`: Property IDs, names, cities, currencies.
+  * `GRANDBACK_AP_INVOICES` & `GRANDBACK_AR_INVOICES`: Accounts Payable and Accounts Receivable records.
+  * `GRANDBACK_GL_ACCOUNTS`: General Ledger Chart of Accounts.
+  * `GRANDBACK_JOURNAL_ENTRIES` & `GRANDBACK_JOURNAL_LINES`: Journal transactions.
+  * `GRANDBACK_AUDIT_LOG`: Logs of chats, actions, and blocked security threats.
 * DML scripts to seed initial ACCOR properties, vendors, GL accounts, and users.
 
-#### [NEW] [accor_ebs_security_pkg.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/accor_ebs_security_pkg.sql)
-* PL/SQL package specification and body `ACCOR_IAM_VALIDATOR_PKG`.
+#### [NEW] [02_grandback_iam_pkg.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/02_grandback_iam_pkg.sql)
+* PL/SQL package specification and body `GRANDBACK_IAM_PKG`.
 * Exposes `validate_action(p_email, p_ebs_role, p_action, p_property_id)`:
   * Restricts analysts to `read` actions only.
   * Ensures managers can only read/write within their property access list.
   * Blocks SQL injection keywords (`OR 1=1`, `UNION`, `--`) or prompt injection attempts in input parameters.
 
-#### [NEW] [accor_ebs_bot_pkg.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/accor_ebs_bot_pkg.sql)
-* PL/SQL package `ACCOR_EBS_BOT_PKG` containing the core conversational state logic.
+#### [NEW] [03_grandback_bot_pkg.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/03_grandback_bot_pkg.sql)
+* PL/SQL package `GRANDBACK_BOT_PKG` containing the core conversational state logic.
 * **`process_chat_message` function:**
-  * Validates the request context via `ACCOR_IAM_VALIDATOR_PKG`.
+  * Validates the request context via `GRANDBACK_IAM_PKG`.
   * Classifies intent (GL balances, AP aging, payment approvals).
   * Executes queries (using Select AI or local keyword extraction).
   * Enforces the payment approval workflow (generates a tokenized confirmation payload that must be confirmed by the client before DML updates occur).
@@ -247,15 +254,15 @@ END;
   * **Chat Region:** A PL/SQL Dynamic Content region rendering the conversation feed.
   * **Input Bar:** Text item `P2_USER_MESSAGE` and suggested chip buttons (AP Aging, GL Balance, etc.) linked to Dynamic Actions.
   * **Approval Drawer/Modal:** An APEX inline drawer or modal dialog gating invoice actions. Includes transaction details and CTA confirmation buttons.
-  * **AJAX Process:** Call `ACCOR_EBS_BOT_PKG.process_chat_message` asynchronously to update page state and load bot replies.
+  * **AJAX Process:** Call `GRANDBACK_BOT_PKG.process_chat_message` asynchronously to update page state and load bot replies.
 
 #### [NEW] [p00003-admin.apx](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/applications/accor_ebs_bot/pages/p00003-admin.apx)
 * **Page 3: Admin Governance Panel:**
   * Security-gated to Administrator role only.
   * Uses a tabbed layout containing:
-    * **Tab 1: Users** (Interactive Grid on `ACCOR_USERS`).
-    * **Tab 2: Audit Logs** (Interactive Report on `ACCOR_AUDIT_LOG`).
-    * **Tab 3: Blocked security alerts** (Interactive Report on `ACCOR_AUDIT_LOG` showing blocked threats).
+    * **Tab 1: Users** (Interactive Grid on `GRANDBACK_USERS`).
+    * **Tab 2: Audit Logs** (Interactive Report on `GRANDBACK_AUDIT_LOG`).
+    * **Tab 3: Blocked security alerts** (Interactive Report on `GRANDBACK_AUDIT_LOG` showing blocked threats).
 
 #### [MODIFY] [lists.apx](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/applications/accor_ebs_bot/shared-components/lists.apx)
 * Add sidebar navigation entries linking Page 2 (Chat Workspace) and Page 3 (Admin Governance).
@@ -287,7 +294,7 @@ To transition this POC into a highly secure, reliable, and SOX-compliant product
      ```sql
      CREATE OR REPLACE VIEW AP_INVOICES_ALL AS 
      SELECT invoice_id, invoice_num, vendor_id, invoice_amount, invoice_currency_code, invoice_date, payment_status_flag, org_id 
-     FROM ACCOR_AP_INVOICES;
+     FROM GRANDBACK_AP_INVOICES;
      ```
 
 ### Phase 3: REST API Gateway for Transaction Writes (Write-Path)
@@ -303,10 +310,10 @@ To transition this POC into a highly secure, reliable, and SOX-compliant product
 
 ### Phase 4: Stored Package Orchestration Updates
 1. **Replace Raw DML with Outward API Callout:**
-   * In `ACCOR_EBS_BOT_PKG`, update the `CONFIRM` handler block. Remove the direct database DML statement:
+   * In `GRANDBACK_BOT_PKG`, update the `CONFIRM` handler block. Remove the direct database DML statement:
      ```sql
      -- Stale DML:
-     -- UPDATE ACCOR_AP_INVOICES SET status = 'paid' WHERE invoice_id = v_invoice_id;
+     -- UPDATE GRANDBACK_AP_INVOICES SET status = 'paid' WHERE invoice_id = v_invoice_id;
      ```
    * Replace it with an APEX Web Service REST callout invoking the OIC HTTPS REST Endpoint:
      ```sql
@@ -336,7 +343,7 @@ To transition this POC into a highly secure, reliable, and SOX-compliant product
   node tools/apexctl.mjs apexlang compiler-truth audit --app-path applications/accor_ebs_bot
   ```
 * Execute PL/SQL unit tests:
-  * Run the test script `backend/database/test_accor_ebs_bot.sql` verifying `ACCOR_IAM_VALIDATOR_PKG` blocks unauthorized transactions and SQL injections, and `ACCOR_EBS_BOT_PKG` correctly transitions payment approval states.
+  * Run the test script `backend/database/07_test_grandback_bot.sql` verifying `GRANDBACK_IAM_PKG` blocks unauthorized transactions and SQL injections, and `GRANDBACK_BOT_PKG` correctly transitions payment approval states.
 
 ### Manual Verification
 * Deploy the SQL schemas, PL/SQL packages, and seed data to your OCI Autonomous Database workspace.

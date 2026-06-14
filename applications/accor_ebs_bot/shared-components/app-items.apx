@@ -1,0 +1,35 @@
+appItem G_USER_ID (
+    security {
+        sessionStateProtection: checksumRequiredSessionLevel
+    }
+)
+
+appItem G_USER_NAME (
+    security {
+        sessionStateProtection: checksumRequiredSessionLevel
+    }
+)
+
+appItem G_USER_ROLE (
+    security {
+        sessionStateProtection: checksumRequiredSessionLevel
+    }
+)
+
+appItem G_EBS_ROLE (
+    security {
+        sessionStateProtection: checksumRequiredSessionLevel
+    }
+)
+
+appItem G_PROPERTY_ACCESS (
+    security {
+        sessionStateProtection: checksumRequiredSessionLevel
+    }
+)
+
+appItem G_THREAD_ID (
+    security {
+        sessionStateProtection: checksumRequiredSessionLevel
+    }
+)

@@ -32,6 +32,46 @@ page 3 (
         }
     )
 
+    region kpi-strip (
+        name: Governance KPIs
+        type: staticContent
+        layout {
+            sequence: 5
+            slot: body
+        }
+        appearance {
+            template: @/standard
+            templateOptions: #DEFAULT#
+        }
+        source {
+            htmlCode:
+                ```html
+                <link rel="stylesheet" href="#APP_FILES#css/ebs-bot.css">
+                <div class="ebs-kpi-strip">
+                  <div class="ebs-kpi"><span class="ebs-kpi__label">Blocked (24h)</span><span class="ebs-kpi__value" id="kpi-blocked-24h">…</span></div>
+                  <div class="ebs-kpi"><span class="ebs-kpi__label">Injection attempts (24h)</span><span class="ebs-kpi__value" id="kpi-inject-24h">…</span></div>
+                  <div class="ebs-kpi"><span class="ebs-kpi__label">DML executions (24h)</span><span class="ebs-kpi__value" id="kpi-dml-24h">…</span></div>
+                  <div class="ebs-kpi"><span class="ebs-kpi__label">Active users</span><span class="ebs-kpi__value" id="kpi-users">…</span></div>
+                </div>
+                <script>
+                (function(){
+                  document.body.classList.add('ebs-shell-active');
+                  function set(id, v){ var n=document.getElementById(id); if(n) n.textContent=v; }
+                  apex.server.process('LOAD_GOV_KPIS', {}, {
+                    dataType: 'json',
+                    success: function(d){
+                      set('kpi-blocked-24h',  d.blocked_24h || 0);
+                      set('kpi-inject-24h',   d.injection_24h || 0);
+                      set('kpi-dml-24h',      d.dml_24h || 0);
+                      set('kpi-users',        d.active_users || 0);
+                    }
+                  });
+                })();
+                </script>
+                ```
+        }
+    )
+
     region users-grid (
         name: Users Registry
         type: interactiveReport
@@ -40,9 +80,13 @@ page 3 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select user_id, email, name, role, ebs_role, property_access, org_id
-                  from ACCOR_USERS
-                 order by name
+                select u.user_id, u.email, u.name, u.role, u.ebs_role,
+                       u.property_access, u.org_id,
+                       (select max(timestamp)
+                          from grandback_audit_log a
+                         where upper(a.email) = upper(u.email)) as last_seen_at
+                  from grandback_users u
+                 order by u.name
                 ```
         }
         layout {
@@ -138,6 +182,18 @@ page 3 (
                 dataType: STRING
             }
         )
+        column LAST_SEEN_AT (
+            type: plainText
+            heading {
+                heading: Last seen
+            }
+            layout {
+                sequence: 80
+            }
+            source {
+                dataType: DATE
+            }
+        )
     )
 
     region audit-logs-grid (
@@ -148,8 +204,9 @@ page 3 (
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select log_id, email, action_type, query_text, status, reason, timestamp
-                  from ACCOR_AUDIT_LOG
+                select log_id, email, role, action_type, intent,
+                       property_id, query_text, status, reason, timestamp
+                  from grandback_audit_log
                  order by timestamp desc
                 ```
         }
@@ -186,10 +243,10 @@ page 3 (
                 dataType: STRING
             }
         )
-        column ACTION_TYPE (
+        column ROLE (
             type: plainText
             heading {
-                heading: Action Type
+                heading: Role
             }
             layout {
                 sequence: 30
@@ -198,13 +255,49 @@ page 3 (
                 dataType: STRING
             }
         )
-        column QUERY_TEXT (
+        column ACTION_TYPE (
             type: plainText
             heading {
-                heading: Query Text
+                heading: Action
             }
             layout {
                 sequence: 40
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column INTENT (
+            type: plainText
+            heading {
+                heading: Intent
+            }
+            layout {
+                sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column PROPERTY_ID (
+            type: plainText
+            heading {
+                heading: Property
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column QUERY_TEXT (
+            type: plainText
+            heading {
+                heading: Query
+            }
+            layout {
+                sequence: 70
             }
             source {
                 dataType: STRING
@@ -216,7 +309,7 @@ page 3 (
                 heading: Status
             }
             layout {
-                sequence: 50
+                sequence: 80
             }
             source {
                 dataType: STRING
@@ -228,7 +321,7 @@ page 3 (
                 heading: Reason
             }
             layout {
-                sequence: 60
+                sequence: 90
             }
             source {
                 dataType: STRING
@@ -240,7 +333,7 @@ page 3 (
                 heading: Timestamp
             }
             layout {
-                sequence: 70
+                sequence: 100
             }
             source {
                 dataType: DATE
@@ -249,15 +342,16 @@ page 3 (
     )
 
     region security-events-grid (
-        name: Blocked Security Alerts
+        name: Blocked Security Events
         type: interactiveReport
         source {
             location: localDatabase
             type: sqlQuery
             sqlQuery:
                 ```sql
-                select log_id, email, action_type, query_text, status, reason, timestamp
-                  from ACCOR_AUDIT_LOG
+                select log_id, email, role, action_type, intent,
+                       property_id, query_text, reason, timestamp
+                  from grandback_audit_log
                  where status = 'blocked'
                  order by timestamp desc
                 ```
@@ -295,10 +389,10 @@ page 3 (
                 dataType: STRING
             }
         )
-        column ACTION_TYPE (
+        column ROLE (
             type: plainText
             heading {
-                heading: Action Type
+                heading: Role
             }
             layout {
                 sequence: 30
@@ -307,10 +401,10 @@ page 3 (
                 dataType: STRING
             }
         )
-        column QUERY_TEXT (
+        column ACTION_TYPE (
             type: plainText
             heading {
-                heading: Query Text
+                heading: Action
             }
             layout {
                 sequence: 40
@@ -319,13 +413,37 @@ page 3 (
                 dataType: STRING
             }
         )
-        column STATUS (
+        column INTENT (
             type: plainText
             heading {
-                heading: Status
+                heading: Intent
             }
             layout {
                 sequence: 50
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column PROPERTY_ID (
+            type: plainText
+            heading {
+                heading: Property
+            }
+            layout {
+                sequence: 60
+            }
+            source {
+                dataType: STRING
+            }
+        )
+        column QUERY_TEXT (
+            type: plainText
+            heading {
+                heading: Query
+            }
+            layout {
+                sequence: 70
             }
             source {
                 dataType: STRING
@@ -337,7 +455,7 @@ page 3 (
                 heading: Reason
             }
             layout {
-                sequence: 60
+                sequence: 80
             }
             source {
                 dataType: STRING
@@ -349,7 +467,7 @@ page 3 (
                 heading: Timestamp
             }
             layout {
-                sequence: 70
+                sequence: 90
             }
             source {
                 dataType: DATE

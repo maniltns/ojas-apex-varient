@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node .agents/skills/apex/apexlang/tools/apexctl.mjs apexlang validate --app-path applications/accor_ebs_bot)",
+      "Read(//c/Program Files/**)",
+      "Bash(cmd.exe //c \"where node\")",
+      "Bash(npm list *)",
+      "Bash(where node *)",
+      "Bash(python build_deck.py)",
+      "Bash(python \"C:/Users/AMN/.claude/skills/pptx/scripts/office/soffice.py\" --headless --convert-to pdf rapid-dev-framework.pptx)",
+      "Bash(cmd.exe //c \"where soffice\")",
+      "Read(//c/Program Files \\(x86\\)/LibreOffice/program/**)",
+      "Bash(python -m markitdown rapid-dev-framework.pptx)",
+      "Bash(python qa_deck.py)",
+      "Bash(python -c \"import sys; t=sys.stdin.read\\(\\); print\\(t[t.find\\('SLIDE 2'\\):][:8000]\\)\")",
+      "Bash(python backend/database/_rename.py)",
+      "Bash(sed -i 's/accor_audit_log/grandback_audit_log/g' applications/accor_ebs_bot/pages/p00003-admin.apx)",
+      "Bash(sed -i 's/ACCOR-EBS-BOT/GRANDBACK-EBS-BOT/g' applications/accor_ebs_bot/application.apx)",
+      "Bash(sed -i 's/ACCOR finance directory/Grandback finance directory/g' applications/accor_ebs_bot/shared-components/authorizations.apx)",
+      "Bash(sed -i 's/-- 1\\\\. ACCOR PROPERTIES/-- 1. GRANDBACK PROPERTIES/; s/-- 2\\\\. ACCOR USERS/-- 2. GRANDBACK USERS/; s/-- 3\\\\. ACCOR VENDORS/-- 3. GRANDBACK VENDORS/; s/-- 4\\\\. ACCOR CUSTOMERS/-- 4. GRANDBACK CUSTOMERS/' backend/database/01_schema_install.sql)",
+      "Bash(sed -i 's/ACCOR EBS Bot — Select AI/Grandback \\(EBS\\) Bot — Select AI/' backend/database/06_setup_select_ai.sql)"
+    ]
+  }
+}

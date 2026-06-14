@@ -12,7 +12,7 @@ page 2 (
     security {
         pageAccessProtection: argumentsMustHaveChecksum
         formAutoComplete: false
-        authorizationScheme: mustNotBePublicUser
+        authorizationScheme: @authenticated-finance-user
     }
 
     region breadcrumbs (
@@ -32,186 +32,85 @@ page 2 (
         }
     )
 
-    region property-context (
-        name: Property Context
-        type: staticContent
-        layout {
-            sequence: 10
-            slot: body
-        }
-        appearance {
-            template: @/blank-with-attributes
-            templateOptions: #DEFAULT#
-        }
-    )
-
-    pageItem P2_PROPERTY (
-        type: selectList
-        label {
-            label: Active Property Scope
-            alignment: right
-        }
-        layout {
-            sequence: 10
-            region: @property-context
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/hidden
-            templateOptions: #DEFAULT#
-        }
-        lov {
-            type: sharedComponent
-            lov: @properties-lov
-        }
-    )
-
-    pageItem P2_THREAD_ID (
-        type: hidden
-        layout {
-            sequence: 20
-            region: @property-context
-            slot: regionBody
-        }
-        security {
-            sessionStateProtection: checksumRequiredSessionLevel
-        }
-    )
-
-    region chat-console (
+    region chat-shell (
         name: EBS Finance Orchestrator
-        type: dynamicContent
-        source {
-            plsqlFunctionBody:
-                ```plsql
-                declare
-                    v_thread_id varchar2(100) := :P2_THREAD_ID;
-                    v_html varchar2(32767) := '';
-                begin
-                    if v_thread_id is null then
-                        v_thread_id := 'accor_th_' || :APP_USER || '_' || to_char(systimestamp, 'YYYYMMDDHH24MISS');
-                        :P2_THREAD_ID := v_thread_id;
-                    end if;
-                    
-                    v_html := '<div class="chat-wrapper" style="background-color: #070708; color: #f5f5f5; padding: 20px; border-radius: 12px; border: 1px solid #1f2020; min-height: 400px; display: flex; flex-direction: column; justify-content: space-between;">';
-                    v_html := v_html || '  <div class="chat-history" style="flex-grow: 1; overflow-y: auto; margin-bottom: 20px; font-family: sans-serif; font-size: 13px;">';
-                    
-                    -- Query messages from conversation table
-                    for r in (
-                        select role, dbms_lob.substr(message_content, 4000, 1) as msg_text, timestamp
-                          from ACCOR_CONVERSATIONS
-                         where thread_id = v_thread_id
-                         order by timestamp asc
-                    ) loop
-                        if r.role = 'user' then
-                            v_html := v_html || '    <div class="msg user-msg" style="text-align: right; margin: 10px 0;"><span style="background-color: rgba(212, 175, 55, 0.15); color: #f5f5f5; border: 1px solid rgba(212, 175, 55, 0.2); padding: 8px 12px; border-radius: 12px 12px 0 12px; display: inline-block;">' || r.msg_text || '</span></div>';
-                        else
-                            v_html := v_html || '    <div class="msg bot-msg" style="text-align: left; margin: 10px 0;"><span style="background-color: #1f2020; color: #dcdcdc; border: 1px solid #2d2e2f; padding: 8px 12px; border-radius: 12px 12px 12px 0; display: inline-block; max-width: 80%;">' || r.msg_text || '</span></div>';
-                        end if;
-                    end loop;
-                    
-                    v_html := v_html || '  </div>';
-                    v_html := v_html || '</div>';
-                    
-                    return v_html;
-                end;
-                ```
-        }
-        layout {
-            sequence: 30
-            slot: body
-        }
-        appearance {
-            template: @/collapsible
-            templateOptions: #DEFAULT#
-        }
-    )
-
-    region chat-input-region (
-        name: Message Input
         type: staticContent
         layout {
-            sequence: 40
+            sequence: 10
             slot: body
         }
         appearance {
-            template: @/blank-with-attributes
+            template: @/standard
             templateOptions: #DEFAULT#
         }
-    )
-
-    pageItem P2_USER_MESSAGE (
-        type: textField
-        label {
-            label: Message
-            alignment: right
-        }
-        layout {
-            sequence: 10
-            region: @chat-input-region
-            slot: regionBody
-            alignment: left
-        }
-        appearance {
-            template: @/hidden
-            templateOptions: #DEFAULT#
-            valuePlaceholder: Ask EBS Finance Bot... (e.g. 'Show AP aging' or 'Approve payment ap_inv_1001')
-        }
-    )
-
-    button send-msg (
-        buttonName: SEND_MSG
-        label: Send
-        layout {
-            sequence: 20
-            region: @chat-input-region
-            slot: next
-        }
-        appearance {
-            buttonTemplate: @/text
-            hot: true
-            templateOptions: #DEFAULT#
-        }
-        behavior {
-            action: submitPage
-        }
-    )
-
-    process process-user-chat (
-        name: Process User Chat
-        type: executeCode
         source {
-            plsqlCode:
-                ```plsql
-                declare
-                    v_res_json varchar2(32767);
-                begin
-                    if :P2_USER_MESSAGE is not null then
-                        v_res_json := ACCOR_EBS_BOT_PKG.process_chat_message(
-                            p_email       => :APP_USER,
-                            p_ebs_role    => 'Finance Manager', -- Default role for testing inside APEX session
-                            p_message     => :P2_USER_MESSAGE,
-                            p_property_id => NVL(:P2_PROPERTY, 'prop_novotel_paris'),
-                            p_thread_id   => :P2_THREAD_ID
-                        );
-                        
-                        -- Clear message input
-                        :P2_USER_MESSAGE := null;
-                    end if;
-                end;
+            htmlCode:
+                ```html
+                <link rel="stylesheet" href="#APP_FILES#css/ebs-bot.css">
+                <script src="#APP_FILES#js/ebs-bot.js" defer></script>
+                <section id="ebs-shell" data-role="">
+                  <header class="ebs-header">
+                    <div class="ebs-brand">
+                      <span class="ebs-brand__mark">A</span>
+                      <span class="ebs-brand__name">
+                        Grandback (EBS) Finance
+                        <small>Conversational Console</small>
+                      </span>
+                    </div>
+                    <div class="ebs-property">
+                      <select class="ebs-property__select" aria-label="Active property"></select>
+                    </div>
+                    <div class="ebs-user">
+                      <span class="ebs-user__name" data-user-name></span>
+                      <span class="ebs-role-pill" data-role-pill></span>
+                    </div>
+                  </header>
+
+                  <div class="ebs-quick">
+                    <button type="button" class="ebs-chip" data-prompt="Show AP aging">AP_AGING</button>
+                    <button type="button" class="ebs-chip" data-prompt="Show AR aging">AR_AGING</button>
+                    <button type="button" class="ebs-chip" data-prompt="List overdue invoices">OVERDUE</button>
+                    <button type="button" class="ebs-chip" data-prompt="Show GL balances">GL_BALANCES</button>
+                    <button type="button" class="ebs-chip" data-prompt="Consolidated portfolio">PORTFOLIO</button>
+                    <button type="button" class="ebs-chip" data-prompt="Show journals">JOURNALS</button>
+                    <button type="button" class="ebs-chip" data-prompt="Property summary">PROPERTY_SUMMARY</button>
+                    <button type="button" class="ebs-chip" data-write="true" data-prompt="Approve payment for ap_inv_1001">APPROVE_PAYMENT</button>
+                  </div>
+
+                  <div class="ebs-feed" role="log" aria-live="polite"></div>
+
+                  <div class="ebs-typing">
+                    <span class="ebs-typing__dots"><span></span><span></span><span></span></span>
+                    <span>Bot is thinking</span>
+                  </div>
+
+                  <form class="ebs-composer" onsubmit="return false;">
+                    <textarea class="ebs-input"
+                              placeholder="Ask about AP aging, GL balances, vendors, or approve a payment…"
+                              rows="1"
+                              aria-label="Message"></textarea>
+                    <button type="button" class="ebs-send">
+                      Send <span class="ebs-send__kbd">⏎</span>
+                    </button>
+                  </form>
+                </section>
+
+                <div id="ebs-modal" class="ebs-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ebs-modal-title" aria-hidden="true">
+                  <div class="ebs-modal">
+                    <h2 id="ebs-modal-title" class="ebs-modal__title">Confirm payment</h2>
+                    <p class="ebs-modal__sub">This action commits a DML update against the EBS replica and is logged in the audit trail.</p>
+                    <dl class="ebs-modal__list">
+                      <div style="display:contents"><dt>Invoice ID</dt><dd data-slot="invoice-id">—</dd></div>
+                      <div style="display:contents"><dt>Number</dt><dd data-slot="invoice-number">—</dd></div>
+                      <div style="display:contents"><dt>Amount</dt><dd data-slot="amount">—</dd></div>
+                    </dl>
+                    <div class="ebs-modal__actions">
+                      <button type="button" class="ebs-btn" data-action="cancel">Cancel</button>
+                      <button type="button" class="ebs-btn ebs-btn--primary" data-action="confirm">Confirm payment</button>
+                    </div>
+                  </div>
+                </div>
                 ```
-        }
-        execution {
-            sequence: 10
-            point: afterSubmit
-        }
-        advanced {
-            executionMappingIdentifier: 402283928123891
-        }
-        serverSideCondition {
-            type: whenButtonPressed
-            button: @send-msg
         }
     )
 

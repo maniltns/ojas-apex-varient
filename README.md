@@ -1,68 +1,104 @@
-# 🧠 ACCOR EBS Finance Conversational Bot POC
+# 🧠 ACCOR Grandback Finance Conversational Bot — POC
 
-A secure, context-aware conversational chatbot built for the **ACCOR Corporate Finance team**. It interfaces natively with replica tables representing Oracle EBS Finance modules (AP, AR, GL) hosted on an **OCI Autonomous Transaction Processing (ATP) 23ai database** and runs inside **Oracle APEX**.
+A secure, role-aware conversational assistant over **ACCOR Grandback** (the client's Oracle **EBS
+12.2.12** finance landscape — AP · AR · GL · CM · FA, MOAC, 18 countries, 1000+ users). It runs
+entirely inside the **native Oracle** stack: **Oracle APEX** + **OCI Autonomous Database 23ai**, with
+all logic in PL/SQL and an **ORDS REST API** (the RFP "API-first" layer). For the POC, EBS data is
+represented by seeded `GRANDBACK_*` tables.
+
+**Start here:** [POC_IMPLEMENTATION_PLAN.md](POC_IMPLEMENTATION_PLAN.md) (step-by-step trial deploy) ·
+[RFP_TRACEABILITY.md](RFP_TRACEABILITY.md) (use cases · personas · test dimensions → artifacts) ·
+[new-prd.md](new-prd.md) (product requirements) · [docs/architecture.drawio](docs/architecture.drawio)
+(5-page architecture).
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ Architecture overview
 
-The system runs entirely within the native Oracle ecosystem, bypassing external middle-tier hosting. The database serves as both the data layer and the agent orchestration engine.
+The database is both the data layer and the orchestration engine; APEX and ORDS are thin surfaces over
+the same PL/SQL.
 
 ```mermaid
 graph TD
-    User([Finance User]) -->|1. HTTPS| APEX["Oracle APEX App - Page 2 Chat"]
-    APEX -->|2. AJAX callback - PL/SQL| Package["ACCOR_EBS_BOT_PKG"]
-    Package -->|3. Check Permissions| Security["ACCOR_IAM_VALIDATOR_PKG"]
-    Package -->|4. Log Security and Activity| Logs[("ACCOR_AUDIT_LOG")]
-    Package -->|5. Translate NL to SQL| SelectAI["Oracle Select AI"]
-    SelectAI -->|6. Query EBS Replica| EBS[("EBS Replica Tables - AP AR GL")]
-    Package -->|7. Return MD Tables and Visual Flow| APEX
+    User([Finance User]) -->|HTTPS / REST| Edge["Oracle APEX (Page 2 chat)  ·  ORDS /grandback/v1/*"]
+    Edge -->|process_chat_message| Bot["GRANDBACK_BOT_PKG (6-step pipeline · 15 formatters)"]
+    Bot -->|guard / IAM / audit| Sec["GRANDBACK_IAM_PKG"]
+    Bot -->|gated DML| Pend[("GRANDBACK_PENDING_APPROVALS")]
+    Bot -->|NL→SQL (optional, SELECT-only)| SelectAI["Select AI / OCI GenAI"]
+    Bot -->|read/write| Data[("GRANDBACK_* tables — AP·AR·GL·CM·FA on ATP 23ai")]
+    Sec -->|autonomous tx| Audit[("GRANDBACK_AUDIT_LOG")]
 ```
 
-### Key Technical Specs:
-* **Presentation Tier:** Oracle APEX (defined as compiler-valid APEXlang `.apx` configurations under `applications/accor_ebs_bot/`).
-* **Database & Logic Tier:** OCI Autonomous Database (ATP 23ai) hosting SQL tables, constraints, and PL/SQL packages.
-* **Orchestration & State Management:** Handles user queries, locks analyst roles from executing DML, parses intents, and processes multi-turn states inside `ACCOR_EBS_BOT_PKG`.
-* **Guardrails:** Protects against SQL/Prompt injection and property scope violations via `ACCOR_IAM_VALIDATOR_PKG`.
-* **Natural Language to SQL:** Uses native `DBMS_CLOUD_AI` (Select AI) stateless profile configurations to interface with OCI Generative AI or external LLMs (e.g. OpenAI).
+### Delivery phases (RFP)
+- **Phase 1 — API-first / Dynamic analytics (80 use cases):** ORDS + Select AI/NLQ. **POC builds a
+  representative subset across AP/AR/GL/CM/FA.**
+- **Phase 2 — Knowledge & Context (30):** Oracle Vector Search, forecasting. *Roadmap.*
+- **Phase 3 — Agentic AI (12 agents):** autonomous workflows. *Roadmap.*
+
+### Key technical specs
+* **Presentation:** Oracle APEX (APEXlang `.apx` under `applications/accor_ebs_bot/`) + standalone
+  ORDS HTML client (`clients/grandback-chat.html`).
+* **API:** ORDS REST module `grandback/v1` (`05_ords_rest_grandback.sql`).
+* **Logic/data:** OCI ATP 23ai — `GRANDBACK_BOT_PKG`, `GRANDBACK_IAM_PKG`, `GRANDBACK_BOT_API_PKG`.
+* **Guardrails:** SQL/prompt-injection + property-scope enforcement; gated DML; autonomous-tx audit.
+* **NL→SQL:** `DBMS_CLOUD_AI` (Select AI), SELECT-only, grounded to `GRANDBACK_*`; static help fallback.
 
 ---
 
-## 📦 Project Structure
+## 📦 Project structure
 
 ```text
 ojas-apex-varient/
-├── applications/
-│   └── accor_ebs_bot/            # Oracle APEX App (APEXlang Spec)
-│       ├── page-groups.apx
-│       ├── pages/                # Page 2 (Chat) & Page 3 (Admin Panel)
-│       └── shared-components/    # Authentication & Authorization Rules
-├── backend/
-│   └── database/                 # Database Schema & Logic Tier
-│       ├── schema_install.sql    # EBS tables & seed data
-│       ├── accor_ebs_security_pkg.sql # OCI IAM validator
-│       ├── accor_ebs_bot_pkg.sql # Bot orchestrator (Select AI integration)
-│       └── test_accor_ebs_bot.sql # Automated PL/SQL tests
+├── applications/accor_ebs_bot/        # Oracle APEX app (APEXlang)
+│   ├── pages/                         # Page 2 (Chat) · Page 3 (Admin)
+│   └── shared-components/             # auth, app-processes, lovs, static files
+├── backend/database/                  # numbered deploy order
+│   ├── 01_schema_install.sql          # 15 GRANDBACK_* tables + seed (5 personas)
+│   ├── 02_grandback_iam_pkg.sql       # security / IAM validator
+│   ├── 03_grandback_bot_pkg.sql       # bot engine (15 formatters, gated payment)
+│   ├── 04_grandback_bot_api_pkg.sql   # APEX AJAX wrapper
+│   ├── 05_ords_rest_grandback.sql     # ORDS REST API (API-first)
+│   ├── 06_setup_select_ai.sql         # optional NLQ (needs LLM key)
+│   ├── 07_test_grandback_bot.sql      # PL/SQL unit suite
+│   ├── deploy_all.sql                 # single entrypoint (@-runs 01..04,07)
+│   └── _legacy/                       # superseded scripts (do not use)
+├── clients/grandback-chat.html        # standalone ORDS client (zero APEX import)
+├── POC_IMPLEMENTATION_PLAN.md · RFP_TRACEABILITY.md
+└── docs/architecture.drawio
 ```
 
 ---
 
-## 🚀 Deployment & Local Testing
+## 🚀 Deploy on an OCI trial
 
-### 1. Local Validation (APEXlang)
-Validate and lint the APEXlang configuration files locally:
-```bash
-node-env/bin/node .agents/skills/apex/apexlang/tools/apexctl.mjs apexlang validate --app-path applications/accor_ebs_bot
+> Full walk-through (with the apexctl/SQLcl reality and fallbacks) is in
+> [POC_IMPLEMENTATION_PLAN.md](POC_IMPLEMENTATION_PLAN.md). Quick version:
+
+**1. Database** — connect SQLcl / Database Actions as the `GRANDBACK_SCHEMA` user and run:
+```sql
+@deploy_all.sql            -- installs 01..04, runs the 07 test suite
+@05_ords_rest_grandback.sql  -- publishes the REST API
+-- optional NLQ: edit DEFINEs then  @06_setup_select_ai.sql
 ```
+Confirm `07` prints **ALL TESTS PASSED**.
 
-### 2. OCI Database & Package Setup
-Connect to your OCI Autonomous Database 23ai schema using SQLcl or APEX SQL Commands, and run:
-1. `backend/database/schema_install.sql`
-2. `backend/database/accor_ebs_security_pkg.sql`
-3. `backend/database/accor_ebs_bot_pkg.sql`
-4. `backend/database/test_accor_ebs_bot.sql` (to run automated test suites)
+**2. Prove API-first immediately** (no APEX import needed):
+```bash
+curl -X POST https://<atp-host>/ords/grandback_schema/grandback/v1/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"manager@accor.com","message":"Show AP aging","property_id":"prop_novotel_paris"}'
+```
+…or open `clients/grandback-chat.html`, set the API base URL, and chat.
 
-### 3. APEX Application Import
-1. Navigate to **App Builder** inside your APEX Workspace.
-2. Select **Import** and upload the APEXlang application package.
-3. Assign the parsing schema to your database schema (e.g. `ACCOR_SCHEMA`) and complete the import.
+**3. APEX UI** — validate then import the app (requires Node + SQLcl 26.1.2+ on the host):
+```bash
+node .agents/skills/apex/apexlang/tools/apexctl.mjs apexlang validate --app-path applications/accor_ebs_bot
+node .agents/skills/apex/apexlang/tools/apexctl.mjs runtime roundtrip \
+  --app-path <abs-path>/applications/accor_ebs_bot --db-connection-name <conn> \
+  --import-intent validate-and-import
+```
+*Fallback:* APEX Builder → App Builder → Import. (The bot works regardless — all logic is in the
+PL/SQL packages the pages call.)
+
+**Seed personas** (APEX Accounts login): `analyst@accor.com` (read-only), `cashmgr@accor.com`,
+`controller@accor.com`, `exec@accor.com` (read-only), `manager@accor.com`, `admin@accor.com`.

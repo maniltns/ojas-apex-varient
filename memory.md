@@ -1,5 +1,12 @@
 # 🧠 ACCOR EBS Bot — Persistent Memory
 
+> **RFP alignment note.** This document refers to **ACCOR Grandback** (the client's Oracle EBS 12.2.12
+> landscape). Code identifiers use the `GRANDBACK_*` prefix. The solution is delivered in three RFP
+> phases — Phase 1 (API-first / dynamic analytics, 80 use cases), Phase 2 (Knowledge & Context /
+> Vector Search, 30), Phase 3 (Agentic AI, 12). This POC builds a representative **Phase 1** subset.
+> Canonical references: [POC_IMPLEMENTATION_PLAN.md](POC_IMPLEMENTATION_PLAN.md) ·
+> [RFP_TRACEABILITY.md](RFP_TRACEABILITY.md).
+
 > **Purpose:** This file preserves the full project context, decisions, architecture choices, implementation status, and change history. It acts as a living memory for AI assistants and developers to maintain continuity across sessions.
 >
 > **Rules:**
@@ -17,8 +24,8 @@
 | **Product** | Secure Conversational Bot for Corporate Finance |
 | **Client** | ACCOR |
 | **Ecosystem** | Native Oracle APEX & OCI (Always Free / Cloud ATP 23ai) |
-| **Database Schema** | `ACCOR_SCHEMA` |
-| **Orchestrator Backend**| Stored PL/SQL Packages (`ACCOR_EBS_BOT_PKG` & `ACCOR_IAM_VALIDATOR_PKG`) |
+| **Database Schema** | `GRANDBACK_SCHEMA` |
+| **Orchestrator Backend**| Stored PL/SQL Packages (`GRANDBACK_BOT_PKG` & `GRANDBACK_IAM_PKG`) |
 | **AI Integration** | `DBMS_CLOUD_AI` (Select AI) stateless profile to LLM |
 | **APEX App Root** | `applications/accor_ebs_bot/` |
 | **Database App Root**| `backend/database/` |
@@ -32,10 +39,10 @@
 | AD-01 | **No External Middle-Tiers** | Bypassed FastAPI/React mockups. All database logic, security guardrails, and conversation loops are implemented natively inside PL/SQL packages. | 2026-06-10 |
 | AD-02 | **OCI Autonomous Database 23ai** | Used ATP 23ai Serverless to enable native `DBMS_CLOUD_AI` (Select AI) natural-language-to-SQL translation features. | 2026-06-10 |
 | AD-03 | **Oracle APEX 24.2 Presentation** | Managed application declarations using the APEXlang DSL framework (`.apx`) for local validation and SQLcl deployment. | 2026-06-10 |
-| AD-04 | **Stateless Session History** | Conversation state persists directly in the database (`ACCOR_CONVERSATIONS` table) and is bound to the APEX user session. | 2026-06-10 |
-| AD-05 | **Autonomous Auditing** | Threat detection logs are written inside `ACCOR_AUDIT_LOG` via `PRAGMA AUTONOMOUS_TRANSACTION` to ensure logging regardless of parent rollback events. | 2026-06-10 |
+| AD-04 | **Stateless Session History** | Conversation state persists directly in the database (`GRANDBACK_CONVERSATIONS` table) and is bound to the APEX user session. | 2026-06-10 |
+| AD-05 | **Autonomous Auditing** | Threat detection logs are written inside `GRANDBACK_AUDIT_LOG` via `PRAGMA AUTONOMOUS_TRANSACTION` to ensure logging regardless of parent rollback events. | 2026-06-10 |
 | AD-06 | **Gated DML Payment Workflows** | Write operations require an explicit `CONFIRM` prompt following a bot-generated verification token to prevent accidental database mutations. | 2026-06-10 |
-| AD-07 | **Select AI Provider Independence** | Select AI profiles (`ACCOR_BOT_PROFILE`) can toggle between OCI Generative AI, OpenAI, and Google Gemini via metadata changes without package recompilation. | 2026-06-10 |
+| AD-07 | **Select AI Provider Independence** | Select AI profiles (`GRANDBACK_BOT_PROFILE`) can toggle between OCI Generative AI, OpenAI, and Google Gemini via metadata changes without package recompilation. | 2026-06-10 |
 | AD-08 | **Case-Insensitive Short Username Mapping** | Aligned database package lookups and APEX AJAX callbacks to support case-insensitive email-prefix pattern matching, resolving discrepancies between APEX usernames and OCI IAM directory records. | 2026-06-11 |
 
 ---
@@ -43,10 +50,10 @@
 ## 📦 Modules & Component Status
 
 ### 1. Database Tier (`backend/database/`)
-* **[schema_install.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/schema_install.sql)**: Creates AP/AR/GL mock tables, conversation history trackers, and system audit logs. Seeds Master properties and user access lists. (Status: **Completed**)
-* **[accor_ebs_security_pkg.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/accor_ebs_security_pkg.sql)**: Implements validation checks (restricts analysts to read-only actions, keeps managers within property scopes, blocks prompt/SQL injections). (Status: **Completed**)
-* **[accor_ebs_bot_pkg.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/accor_ebs_bot_pkg.sql)**: Implements intent classification (AP aging, GL balances, consolidated portfolio, and gated payment execution). Falls back to Select AI `DBMS_CLOUD_AI.GENERATE` for generic prompts. (Status: **Completed**)
-* **[test_accor_ebs_bot.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/test_accor_ebs_bot.sql)**: Automated DDL / package boundary tests. (Status: **Completed**)
+* **[01_schema_install.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/01_schema_install.sql)**: Creates AP/AR/GL mock tables, conversation history trackers, and system audit logs. Seeds Master properties and user access lists. (Status: **Completed**)
+* **[02_grandback_iam_pkg.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/02_grandback_iam_pkg.sql)**: Implements validation checks (restricts analysts to read-only actions, keeps managers within property scopes, blocks prompt/SQL injections). (Status: **Completed**)
+* **[03_grandback_bot_pkg.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/03_grandback_bot_pkg.sql)**: Implements intent classification (AP aging, GL balances, consolidated portfolio, and gated payment execution). Falls back to Select AI `DBMS_CLOUD_AI.GENERATE` for generic prompts. (Status: **Completed**)
+* **[07_test_grandback_bot.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/07_test_grandback_bot.sql)**: Automated DDL / package boundary tests. (Status: **Completed**)
 * **[update_short_usernames.sql](file:///Users/anilmn/Desktop/Projects/ojas-apex-varient/backend/database/update_short_usernames.sql)**: Consolidated migration/update script to compile packages and provide reference code for Page 2 AJAX Callbacks. (Status: **Completed**)
 
 ### 2. APEX App Tier (`applications/accor_ebs_bot/`)
@@ -73,4 +80,4 @@
   * `APEXLANG_LOCAL_CHECK_OK`
 * **LOB comparison fix:** Aliased the column in Page 2 dynamic content to avoid linter regex bugs with raw LOB comparison checks.
 * **Navigation check fix:** List item authorization rules configured via expressions using `apex_authorization.is_authorized` to bypass linter parser errors on nested security definitions.
-* **Short Username Mapping Alignment:** Verified successful compilation of both packages (`ACCOR_IAM_VALIDATOR_PKG` and `ACCOR_EBS_BOT_PKG`) and successful deployment of updated Page 2 AJAX Callbacks supporting prefix username lookups (e.g. `ANALYST` matching `analyst@accor.com`).
+* **Short Username Mapping Alignment:** Verified successful compilation of both packages (`GRANDBACK_IAM_PKG` and `GRANDBACK_BOT_PKG`) and successful deployment of updated Page 2 AJAX Callbacks supporting prefix username lookups (e.g. `ANALYST` matching `analyst@accor.com`).

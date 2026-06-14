@@ -23,3 +23,12 @@ file "icons/app-icon-512.png" (
     charSet: utf-8
 )
 
+file "css/ebs-bot.css" (
+    mimeType: text/css
+    charSet: utf-8
+)
+
+file "js/ebs-bot.js" (
+    mimeType: application/javascript
+    charSet: utf-8
+)

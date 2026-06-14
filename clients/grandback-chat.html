@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grandback Finance Bot — API Demo</title>
+<!--
+  Standalone client for the Grandback bot ORDS REST API.
+  ZERO build / ZERO APEX import — open in a browser, set API_BASE below,
+  and it talks to /ords/grandback_schema/grandback/v1/.
+
+  This is the RFP "API-first" demo surface. Persona is chosen in the header
+  and sent as the "email" in each request, so role/scope validation and the
+  gated-payment handshake all work over plain REST.
+-->
+<style>
+  :root{ --bg:#0a0a0a; --panel:#111113; --line:#26262b; --txt:#ededed; --muted:#8a8a93;
+         --accent:#aac92a; --user:#1b2a4a; --ok:#1e7d52; --warn:#7a5a12; --danger:#7a2222; }
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--txt);font:14px/1.5 Inter,Segoe UI,system-ui,sans-serif;
+       font-variant-numeric:tabular-nums;display:flex;flex-direction:column;height:100vh}
+  header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+  .brand .mark{width:26px;height:26px;border-radius:7px;background:var(--accent);color:#111;display:grid;place-items:center;font-weight:800}
+  header select{background:#0d0d0f;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+  header .spacer{flex:1}
+  header .pill{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+  main{flex:1;overflow:auto;padding:20px;max-width:920px;width:100%;margin:0 auto}
+  .msg{margin:0 0 14px;display:flex}
+  .msg.user{justify-content:flex-end}
+  .bubble{max-width:80%;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+  .msg.user .bubble{background:var(--user);border-color:#26406e}
+  .bubble h3{margin:.1em 0 .5em;font-size:14px}
+  table.ebs-table{border-collapse:collapse;width:100%;font-size:13px;margin:.3em 0}
+  table.ebs-table th,table.ebs-table td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+  table.ebs-table th{color:var(--muted);font-weight:600}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  code{background:#0d0d0f;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
+  .ebs-pill{font-size:11px;border-radius:999px;padding:2px 8px;border:1px solid var(--line)}
+  .ebs-pill--success{background:#10341f;color:#7bd6a0;border-color:#1e7d52}
+  .ebs-pill--warn{background:#3a2c0c;color:#e6c463;border-color:#7a5a12}
+  .ebs-pill--danger{background:#3a1414;color:#e58b8b;border-color:#7a2222}
+  .ebs-pill--neutral{background:#1a1a1f;color:#b9b9c2}
+  .ebs-tag{font-size:11px;border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--muted)}
+  .ebs-num--danger{color:#e58b8b}
+  .ebs-alert{border-radius:10px;padding:10px 12px;border:1px solid var(--line)}
+  .ebs-alert--danger{background:#2a1414;border-color:#7a2222}
+  .ebs-alert--success{background:#10261a;border-color:#1e7d52}
+  .ebs-alert--warn{background:#2a2210;border-color:#7a5a12}
+  .ebs-kpis{display:flex;flex-wrap:wrap;gap:10px}
+  .ebs-kpi{border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:120px}
+  .ebs-kpi__label{display:block;color:var(--muted);font-size:11px}
+  .ebs-kpi__value{font-size:16px;font-weight:700}
+  .ebs-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:.3em 0}
+  .ebs-card__title{font-weight:700}
+  .ebs-card__meta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:4px}
+  .ebs-muted{color:var(--muted)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .chip{font:12px ui-monospace,Menlo,monospace;background:#0d0d0f;border:1px solid var(--line);
+        color:var(--txt);border-radius:8px;padding:6px 10px;cursor:pointer}
+  .chip:hover{border-color:var(--accent)}
+  footer{border-top:1px solid var(--line);background:var(--panel);padding:12px 18px}
+  .composer{max-width:920px;margin:0 auto;display:flex;gap:10px}
+  .composer textarea{flex:1;resize:none;background:#0d0d0f;color:var(--txt);border:1px solid var(--line);
+                     border-radius:10px;padding:10px 12px;font:14px Inter,sans-serif;max-height:140px}
+  .composer button{background:var(--accent);color:#111;border:0;border-radius:10px;padding:0 18px;font-weight:700;cursor:pointer}
+  .composer button:disabled{opacity:.5;cursor:not-allowed}
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center}
+  .modal-backdrop.open{display:grid}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:420px;width:90%}
+  .modal h3{margin:0 0 8px}
+  .modal .row{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0;font-size:13px}
+  .modal .actions{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+  .modal button{border-radius:9px;padding:8px 14px;border:1px solid var(--line);cursor:pointer;font-weight:600}
+  .modal .confirm{background:var(--accent);color:#111;border:0}
+  .modal .cancel{background:transparent;color:var(--txt)}
+  .cfg{font-size:12px;color:var(--muted)}
+  .cfg input{background:#0d0d0f;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:3px 6px;width:330px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="mark">G</span> Grandback Finance Bot <span class="ebs-tag">API demo</span></div>
+  <div class="spacer"></div>
+  <label class="cfg">Persona&nbsp;
+    <select id="persona">
+      <option value="analyst@accor.com">Finance Analyst (read-only)</option>
+      <option value="cashmgr@accor.com">Cash Manager</option>
+      <option value="controller@accor.com">Controller</option>
+      <option value="exec@accor.com">Executive (read-only)</option>
+      <option value="manager@accor.com" selected>Finance Manager</option>
+      <option value="admin@accor.com">Admin</option>
+    </select>
+  </label>
+  <select id="property" title="Active property"></select>
+  <span class="pill" id="rolePill">—</span>
+</header>
+
+<main id="feed">
+  <div class="chips" id="chips"></div>
+</main>
+
+<footer>
+  <div class="cfg" style="max-width:920px;margin:0 auto 8px">
+    API base&nbsp;<input id="apiBase" value="https://REPLACE-WITH-ATP-HOST/ords/grandback_schema/grandback/v1" />
+  </div>
+  <div class="composer">
+    <textarea id="input" rows="1" placeholder="Ask about AP/AR/GL/CM/FA…  e.g. Show AP aging"></textarea>
+    <button id="send">Send</button>
+  </div>
+</footer>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3>Confirm payment</h3>
+    <p class="ebs-muted">This commits a DML update and is written to the audit trail.</p>
+    <div class="row"><span>Invoice</span><strong id="mInv">—</strong></div>
+    <div class="row"><span>Amount</span><strong id="mAmt">—</strong></div>
+    <div class="actions">
+      <button class="cancel" id="mCancel">Cancel</button>
+      <button class="confirm" id="mConfirm">Confirm payment</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const QUICK = ['Show AP aging','Show AR aging','List overdue invoices','Show GL balances',
+  'Trial balance','Cash position','Unreconciled transactions','Show assets',
+  'Supplier risk','Customer balances','Expense trend','Consolidated portfolio',
+  'Approve payment for ap_inv_1001'];
+
+const ALLOWED = {A:['href'],BR:[],CODE:[],DD:[],DIV:['class'],DL:['class'],DT:[],EM:[],
+  H3:['class'],H4:['class'],LI:[],OL:[],P:['class'],SPAN:['class'],STRONG:[],SUB:[],SUP:[],
+  TABLE:['class'],TBODY:[],TD:['class'],TFOOT:[],TH:['class','scope'],THEAD:[],TR:['class'],UL:[]};
+
+function sanitize(html){
+  const doc = new DOMParser().parseFromString(html,'text/html');
+  (function walk(node){
+    [...node.children].forEach(el=>{
+      const tag = el.tagName;
+      if(!ALLOWED[tag]){ el.replaceWith(document.createTextNode(el.textContent)); return; }
+      [...el.attributes].forEach(a=>{ if(!ALLOWED[tag].includes(a.name)) el.removeAttribute(a.name); });
+      if(tag==='A' && /^javascript:/i.test(el.getAttribute('href')||'')) el.removeAttribute('href');
+      walk(el);
+    });
+  })(doc.body);
+  return doc.body.innerHTML;
+}
+
+const $ = s=>document.querySelector(s);
+const feed=$('#feed'), input=$('#input'), sendBtn=$('#send');
+let threadId = 'web_'+Math.random().toString(36).slice(2);
+let pending = null;
+
+const base = ()=> $('#apiBase').value.replace(/\/+$/,'');
+const persona = ()=> $('#persona').value;
+const property = ()=> $('#property').value || null;
+
+function addMsg(html, who){
+  const wrap=document.createElement('div'); wrap.className='msg '+(who||'bot');
+  const b=document.createElement('div'); b.className='bubble';
+  b.innerHTML = who==='user' ? document.createTextNode(html).textContent : sanitize(html);
+  wrap.appendChild(b); feed.appendChild(wrap); feed.scrollTop=feed.scrollHeight;
+}
+
+async function bootstrap(){
+  try{
+    const r = await fetch(base()+'/bootstrap?email='+encodeURIComponent(persona()));
+    const j = await r.json();
+    $('#rolePill').textContent = (j.user&&j.user.role)||'—';
+    const sel=$('#property'); sel.innerHTML='';
+    (j.properties||[]).forEach(p=>{ const o=document.createElement('option'); o.value=p.id; o.textContent=p.name+' ('+p.currency+')'; sel.appendChild(o); });
+  }catch(e){ $('#rolePill').textContent='offline'; }
+}
+
+async function send(msg){
+  addMsg(msg,'user'); input.value=''; sendBtn.disabled=true;
+  try{
+    const r = await fetch(base()+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:persona(),message:msg,property_id:property(),thread_id:threadId})});
+    const j = await r.json();
+    addMsg(j.reply||JSON.stringify(j),'bot');
+    if(j.requires_approval && j.approval_payload){ openModal(j.approval_payload); }
+  }catch(e){ addMsg('<div class="ebs-alert ebs-alert--danger">Network error: '+e.message+'</div>','bot'); }
+  sendBtn.disabled=false;
+}
+
+function openModal(p){
+  pending=p; $('#mInv').textContent=p.invoice_number||p.invoice_id||'—';
+  $('#mAmt').textContent=(p.amount!=null?p.amount:'')+' '+(p.currency||'');
+  $('#modalBackdrop').classList.add('open');
+}
+function closeModal(){ $('#modalBackdrop').classList.remove('open'); pending=null; }
+
+$('#mConfirm').onclick=()=>{ closeModal(); send('CONFIRM'); };
+$('#mCancel').onclick=async()=>{
+  closeModal();
+  try{ await fetch(base()+'/approval/cancel',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({email:persona(),thread_id:threadId})}); }catch(e){}
+  addMsg('<div class="ebs-alert ebs-alert--warn">Payment request cancelled.</div>','bot');
+};
+
+sendBtn.onclick=()=>{ const v=input.value.trim(); if(v) send(v); };
+input.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault(); sendBtn.click();} });
+$('#persona').onchange=()=>{ threadId='web_'+Math.random().toString(36).slice(2); bootstrap(); };
+
+const chips=$('#chips');
+QUICK.forEach(q=>{ const c=document.createElement('button'); c.className='chip'; c.textContent=q;
+  c.onclick=()=>{ input.value=q; input.focus(); }; chips.appendChild(c); });
+
+bootstrap();
+addMsg('<div class="ebs-help"><p>Connected to the Grandback bot REST API. Pick a persona, set your API base URL, and ask a question. Try a chip above.</p></div>','bot');
+</script>
+</body>
+</html>

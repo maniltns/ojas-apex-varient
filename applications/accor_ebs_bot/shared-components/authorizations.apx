@@ -2,9 +2,66 @@ authorization administration-rights (
     name: Administration Rights
     type: plSqlFunctionBody
     settings {
-        plsqlFunctionBody: return true;
+        plsqlFunctionBody:
+            ```plsql
+            declare
+                v_count pls_integer;
+            begin
+                select count(*) into v_count
+                  from grandback_users
+                 where (upper(email) = upper(:APP_USER)
+                        or upper(email) like upper(:APP_USER) || '@%')
+                   and role = 'admin';
+                return v_count > 0;
+            end;
+            ```
     }
     error {
         errorMessage: Insufficient privileges, user is not an Administrator
+    }
+)
+
+authorization manager-or-admin (
+    name: Manager or Admin
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            declare
+                v_count pls_integer;
+            begin
+                select count(*) into v_count
+                  from grandback_users
+                 where (upper(email) = upper(:APP_USER)
+                        or upper(email) like upper(:APP_USER) || '@%')
+                   and role in ('admin','finance_manager');
+                return v_count > 0;
+            end;
+            ```
+    }
+    error {
+        errorMessage: Insufficient privileges — manager or admin role required
+    }
+)
+
+authorization authenticated-finance-user (
+    name: Authenticated Finance User
+    type: plSqlFunctionBody
+    settings {
+        plsqlFunctionBody:
+            ```plsql
+            declare
+                v_count pls_integer;
+            begin
+                select count(*) into v_count
+                  from grandback_users
+                 where upper(email) = upper(:APP_USER)
+                    or upper(email) like upper(:APP_USER) || '@%';
+                return v_count > 0;
+            end;
+            ```
+    }
+    error {
+        errorMessage: User is not registered in the Grandback finance directory
     }
 )

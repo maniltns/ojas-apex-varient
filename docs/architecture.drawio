@@ -1,0 +1,564 @@
+<mxfile host="app.diagrams.net" modified="2026-06-12T12:00:00.000Z" agent="claude" version="24.0.0" type="device" pages="5">
+
+  <!-- ==============================================================
+       PAGE 1 — SOLUTION ARCHITECTURE (PROPOSED, UNIFIED)
+       ============================================================== -->
+  <diagram id="hero" name="1. Solution Architecture">
+    <mxGraphModel dx="1700" dy="920" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="920" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="ACCOR EBS Finance Conversational Bot — Proposed Solution Architecture" style="text;html=1;align=left;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="40" y="18" width="1100" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Native Oracle APEX + OCI Autonomous Database 23ai. Role-aware, audit-logged conversational access to Accor Grandback (EBS) finance data with gated DML, agentic orchestration and enterprise governance." style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="1180" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Finance User -->
+        <mxCell id="user" value="ACCOR Grandback&#10;Finance User&#10;&#10;analyst · manager · admin" style="shape=umlActor;html=1;fillColor=#DEEBF7;strokeColor=#2E5C8A;verticalLabelPosition=bottom;verticalAlign=top;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="55" y="330" width="60" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== BAND 1 — Presentation ===================== -->
+        <mxCell id="bandPres" value="Oracle APEX Presentation Layer" style="swimlane;startSize=30;html=1;fillColor=#AAC92A;fontColor=#1A1A1A;fontStyle=1;fontSize=13;swimlaneFillColor=#F7F9EC;strokeColor=#8FA821;verticalAlign=middle;align=left;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="180" y="100" width="1040" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="pChat" value="Chat Console&#10;[APEX Page 2]&#10;HTML chat shell + modal" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8FA821;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="200" y="142" width="225" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="pAdmin" value="Admin Governance&#10;[APEX Page 3]&#10;KPI strip + 3 Interactive Reports" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8FA821;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="445" y="142" width="225" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="pAuth" value="EBS Authentication&#10;&amp; Authorization&#10;APEX Accounts · OCI Identity Domains SSO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8FA821;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="690" y="142" width="225" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="pMoac" value="Property / MOAC Context&#10;G_USER_ROLE · G_REGION_ACCESS&#10;EBS role mapping" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8FA821;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="935" y="142" width="265" height="64" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== BAND 2 — AI Orchestration Runtime ===================== -->
+        <mxCell id="bandOrch" value="Oracle APEX AI Orchestration Runtime  —  ACCOR_EBS_BOT_PKG  +  ACCOR_IAM_VALIDATOR_PKG  (PL/SQL, in-database)" style="swimlane;startSize=30;html=1;fillColor=#AAC92A;fontColor=#1A1A1A;fontStyle=1;fontSize=13;swimlaneFillColor=#EDE7F6;strokeColor=#8FA821;verticalAlign=middle;align=left;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="180" y="250" width="1040" height="290" as="geometry" />
+        </mxCell>
+        <!-- Row 1: guardrails / router / gated -->
+        <mxCell id="oGin" value="Inbound Guardrail&#10;detect_injection · length · IAM gate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="205" y="300" width="200" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="oRouter" value="Intent Router&#10;classify · dispatch (read / write)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="440" y="300" width="200" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="oGout" value="Outbound Guardrail&#10;scope check · confidence · leak scrub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="675" y="300" width="200" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="oGated" value="Gated-Approval Handler&#10;create_pending_approval · CONFIRM · cancel&#10;two-step handshake, no DML before confirm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="900" y="300" width="300" height="64" as="geometry" />
+        </mxCell>
+        <!-- Row 2: module agents -->
+        <mxCell id="agAP" value="AP&#10;Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="205" y="392" width="140" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="agAR" value="AR&#10;Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="350" y="392" width="140" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="agGL" value="GL&#10;Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="495" y="392" width="140" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="agCM" value="CM&#10;Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="640" y="392" width="140" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="agFA" value="FA&#10;Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="785" y="392" width="140" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="agInsight" value="Insight&#10;trends · risk" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="930" y="392" width="135" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="agWf" value="Workflow&#10;multi-step" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="392" width="130" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="agentsCaption" value="Module intent handlers / domain agents — each: own prompt, tool allowlist and audit policy" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontStyle=2;fontColor=#5d3d6e;" vertex="1" parent="1">
+          <mxGeometry x="205" y="368" width="700" height="18" as="geometry" />
+        </mxCell>
+        <!-- Row 3: tool registry -->
+        <mxCell id="oTools" value="Tool Registry — per-agent allowlist · JSON-schema validated · single controlled exit to data plane &amp; external LLM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;align=center;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="205" y="470" width="995" height="46" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== BAND 3 — Shared Data & Governance ===================== -->
+        <mxCell id="bandData" value="Shared Data &amp; Governance Layer  —  OCI Autonomous Database 23ai" style="swimlane;startSize=30;html=1;fillColor=#AAC92A;fontColor=#1A1A1A;fontStyle=1;fontSize=13;swimlaneFillColor=#EAF1FB;strokeColor=#8FA821;verticalAlign=middle;align=left;spacingLeft=14;" vertex="1" parent="1">
+          <mxGeometry x="180" y="560" width="1040" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="dAtp" value="ATP 23ai&#10;conversations · session state&#10;agent memory · semantic metadata" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#FFFFFF;strokeColor=#2E5C8A;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="205" y="600" width="200" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="dPending" value="ACCOR_PENDING_APPROVALS&#10;gated-DML state machine&#10;(pending → confirmed / expired)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="430" y="600" width="200" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="dAudit" value="ACCOR_AUDIT_LOG&#10;autonomous tx · append-only&#10;role · property · intent · IP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="430" y="678" width="200" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="dSelectAI" value="Select AI Gateway&#10;DBMS_CLOUD_AI.GENERATE&#10;grounded NL→SQL + fallback" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEF;strokeColor=#D6B656;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="650" y="600" width="200" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="dVpd" value="VPD Row Security&#10;row-level scope per property_id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="650" y="678" width="200" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="dRag" value="RAG + Vector Store&#10;23ai AI Vector Search" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="870" y="600" width="160" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="dPrompt" value="Prompt Registry&#10;versioned per agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="870" y="678" width="160" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="dEval" value="Eval Harness&#10;regression gate on deploy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="600" width="150" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="dCb" value="Circuit Breakers&#10;degrade to keyword router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="678" width="150" height="62" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== RIGHT PANEL — OCI Platform Services ===================== -->
+        <mxCell id="panelOci" value="OCI Platform Services" style="swimlane;startSize=30;html=1;fillColor=#1F3864;fontColor=#FFFFFF;fontStyle=1;fontSize=13;swimlaneFillColor=#F4F6FB;strokeColor=#152849;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="100" width="400" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="oci1" value="Autonomous Database 23ai (ATP)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="136" width="376" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="oci2" value="Oracle APEX" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="162" width="376" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="oci3" value="ORDS REST Data Services" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="188" width="376" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="oci4" value="Select AI / OCI Generative AI" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="214" width="376" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="oci5" value="GoldenGate (read replication)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="240" width="376" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="oci6" value="Integration Cloud — OIC (write path)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="266" width="376" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="oci7" value="Vault / Key Management" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="292" width="376" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="oci8" value="Identity Domains (federated SSO)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="318" width="376" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="oci9" value="WAF + Load Balancer" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="344" width="376" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="oci10" value="OKE / Horizontal Pod Autoscaling" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="370" width="376" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="oci11" value="Object Storage" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1272" y="396" width="186" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="oci12" value="Monitoring / OpenTelemetry" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;spacingLeft=10;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1462" y="396" width="186" height="26" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== RIGHT PANEL — GrandBack (EBS) ===================== -->
+        <mxCell id="panelEbs" value="ACCOR Grandback (EBS) — System of Record" style="swimlane;startSize=30;html=1;fillColor=#1F3864;fontColor=#FFFFFF;fontStyle=1;fontSize=12;swimlaneFillColor=#F4F6FB;strokeColor=#152849;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="478" width="400" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="ebsDb" value="Oracle EBS 12.2.12&#10;AP · AR · GL · CM · FA&#10;(system of record)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=14;fillColor=#FFFFFF;strokeColor=#2E5C8A;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1370" y="513" width="200" height="105" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== RIGHT PANEL — External Systems ===================== -->
+        <mxCell id="panelExt" value="External Systems (Direct / API)" style="swimlane;startSize=30;html=1;fillColor=#1F3864;fontColor=#FFFFFF;fontStyle=1;fontSize=13;swimlaneFillColor=#FBF4F4;strokeColor=#152849;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="645" width="400" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="ext2" value="Accor GPT — Enterprise LLM&#10;reachable via PrivateLink (PII redacted)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85450;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1275" y="685" width="370" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ext3" value="Enterprise Knowledge&#10;SharePoint · Confluence · SOPs (RAG)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85450;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1275" y="731" width="370" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ext4" value="Oracle SSO / IAM&#10;federated identity, EBS role mapping" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B85450;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="1275" y="777" width="370" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Footer scope strip -->
+        <mxCell id="footer" value="Scope:  Accor Grandback (Oracle EBS 12.2.12)  ·  MOAC environment  ·  18 countries  ·  1000+ finance business users across AP · AR · GL · CM · FA      |      Aligned to Accor Security, Audit &amp; Data Governance policies" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#AAC92A;strokeColor=#8FA821;fontSize=11;fontStyle=1;fontColor=#1A1A1A;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="840" width="1620" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== Numbered flow edges ===================== -->
+        <mxCell id="f1" value="1 query" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="pChat">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2" value="2 AJAX callback" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="pChat" target="oGin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" value="3 cleared" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="oGin" target="oRouter">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f4" value="4 dispatch" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="oRouter" target="agAP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f5" value="5 read SELECT (VPD scoped)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="agAP" target="dAtp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f6" value="6 stage approval" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;strokeColor=#B85450;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="oGated" target="dPending">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="975" y="560" />
+              <mxPoint x="530" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f7" value="7 audit (autonomous tx)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;dashed=1;dashPattern=4 4;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="oGin" target="dAudit">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="305" y="550" />
+              <mxPoint x="530" y="678" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f8" value="8 LLM call (PrivateLink, redacted)" style="endArrow=classic;html=1;strokeWidth=2;dashed=1;dashPattern=8 4;strokeColor=#B85450;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dSelectAI" target="ext2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f9" value="9 GoldenGate read replication / ORDS" style="endArrow=classic;startArrow=none;html=1;strokeWidth=2;fontSize=10;strokeColor=#2E5C8A;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dAtp" target="ebsDb">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1235" y="640" />
+              <mxPoint x="1235" y="545" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f9b" value="10 OIC write-back to EBS" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#B85450;fontSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" edge="1" parent="1" source="oGated" target="ebsDb">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1240" y="332" />
+              <mxPoint x="1240" y="597" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="f10" value="11 rendered HTML reply" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;dashed=1;dashPattern=8 4;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="oGout" target="pChat">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="825" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ==============================================================
+       PAGE 2 — CURRENT POC (BUILT ONLY, ACCURATE)
+       ============================================================== -->
+  <diagram id="poc" name="2. Current POC">
+    <mxGraphModel dx="1300" dy="980" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="980" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="Current POC — What Is Built and Deployable Today" style="text;html=1;align=left;fontSize=22;fontStyle=1;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="40" y="18" width="900" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="ts" value="Everything runs inside OCI APEX + ATP 23ai. No ORDS, no VPD, no replication, no per-agent split. Property scope enforced by INSTR() in PL/SQL." style="text;html=1;align=left;fontSize=12;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="1000" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="u" value="Finance User&#10;[Browser]" style="shape=umlActor;html=1;fillColor=#DEEBF7;strokeColor=#2E5C8A;verticalLabelPosition=bottom;verticalAlign=top;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="160" width="50" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bApex" value="Oracle APEX (app 43171, APEX Accounts auth)" style="swimlane;startSize=28;html=1;fillColor=#AAC92A;fontColor=#1A1A1A;fontStyle=1;fontSize=12;swimlaneFillColor=#F7F9EC;strokeColor=#8FA821;align=left;spacingLeft=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="220" y="110" width="880" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="apChat" value="● Page 2 — Chat Shell&#10;static-content region + modal&#10;ebs-bot.js (ALLOWED_TAGS sanitizer)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8FA821;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="240" y="148" width="270" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="apAdmin" value="● Page 3 — Admin&#10;KPI strip + 3 Interactive Reports&#10;(Users · Audit Log · Blocked Events)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8FA821;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="525" y="148" width="270" height="62" as="geometry" />
+        </mxCell>
+        <mxCell id="apBoot" value="● afterAuthentication&#10;bootstrap_user_session&#10;sets G_USER_ROLE, G_PROPERTY_ACCESS…" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8FA821;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="810" y="148" width="275" height="62" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bAjax" value="AJAX Application Processes (point: ajaxCallback, each auth-gated)" style="swimlane;startSize=28;html=1;fillColor=#AAC92A;fontColor=#1A1A1A;fontStyle=1;fontSize=12;swimlaneFillColor=#F7F9EC;strokeColor=#8FA821;align=left;spacingLeft=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="220" y="250" width="880" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ajx1" value="● LOAD_BOOTSTRAP&#10;@authenticated-finance-user" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8FA821;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="238" y="288" width="205" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="ajx2" value="● PROCESS_CHAT&#10;@authenticated-finance-user" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8FA821;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="453" y="288" width="205" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="ajx3" value="● CANCEL_APPROVAL&#10;@manager-or-admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8FA821;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="668" y="288" width="205" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="ajx4" value="● LOAD_GOV_KPIS&#10;@administration-rights" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8FA821;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="883" y="288" width="200" height="52" as="geometry" />
+        </mxCell>
+
+        <mxCell id="apiPkg" value="● ACCOR_EBS_BOT_API_PKG  —  thin AJAX wrapper&#10;load_bootstrap · process_chat · cancel_approval · load_governance_kpis  (reads G_X01 / G_X02, returns JSON)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#7E57C2;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="220" y="375" width="880" height="66" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bEngine" value="In-Database Engine (PL/SQL)" style="swimlane;startSize=28;html=1;fillColor=#AAC92A;fontColor=#1A1A1A;fontStyle=1;fontSize=12;swimlaneFillColor=#EDE7F6;strokeColor=#8FA821;align=left;spacingLeft=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="220" y="465" width="880" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="iamPkg" value="● ACCOR_IAM_VALIDATOR_PKG&#10;get_user_context (email OR short user)&#10;detect_injection · is_message_too_long&#10;validate_action (role + property INSTR)&#10;log_audit (autonomous tx)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="240" y="505" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="botPkg" value="● ACCOR_EBS_BOT_PKG&#10;process_chat_message — 6-step pipeline&#10;keyword intent router → 8 HTML formatters:&#10;ap_aging · ar_aging · overdue · gl_balances&#10;consolidated · journal · property · vendor&#10;gated payment: create_pending / CONFIRM / cancel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7E57C2;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="560" y="505" width="520" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="selai" value="◐ Select AI fallback&#10;DBMS_CLOUD_AI.GENERATE&#10;via EXECUTE IMMEDIATE&#10;→ static help if absent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFBEF;strokeColor=#D6B656;fontSize=11;align=left;spacingLeft=8;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="505" width="150" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="bData" value="Data — OCI Autonomous Database 23ai (single instance, Always Free tier)" style="swimlane;startSize=28;html=1;fillColor=#AAC92A;fontColor=#1A1A1A;fontStyle=1;fontSize=12;swimlaneFillColor=#EAF1FB;strokeColor=#8FA821;align=left;spacingLeft=12;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="220" y="710" width="880" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="tblCore" value="● 12 ACCOR_* tables&#10;properties · users · vendors · customers&#10;ap_invoices · ar_invoices · gl_accounts&#10;journal_entries · journal_lines · conversations" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#FFFFFF;strokeColor=#2E5C8A;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="748" width="330" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="tblPend" value="● ACCOR_PENDING_APPROVALS&#10;gated-DML state (pending → confirmed&#10;/ cancelled / expired +15min)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="595" y="748" width="240" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="tblAudit" value="● ACCOR_AUDIT_LOG&#10;append-only · role · property · intent&#10;session · IP (autonomous tx)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;fontSize=11;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="595" y="805" width="240" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="pocNote" value="Scope enforced in PL/SQL, not DB policy:&#10;property_access is a comma list, checked&#10;with INSTR(). Admin bypasses scope.&#10;Authentication = APEX Accounts;&#10;password_hash is a sentinel, unused." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBF4F4;strokeColor=#B85450;fontSize=10;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="860" y="748" width="225" height="105" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pe1" style="endArrow=classic;html=1;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="u" target="bApex">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pe2" value="apex.server.process" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="apChat" target="ajx2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pe3" style="endArrow=classic;html=1;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="bAjax" target="apiPkg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pe4" value="process_chat_message" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="apiPkg" target="bEngine">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pe5" value="validate / screen" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;dashed=1;dashPattern=4 4;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="iamPkg" target="botPkg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pe6" value="fallback" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;dashed=1;dashPattern=8 4;strokeColor=#D6B656;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="botPkg" target="selai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pe7" value="SELECT / gated UPDATE" style="endArrow=classic;html=1;strokeWidth=2;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="botPkg" target="bData">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ==============================================================
+       PAGE 3 — PHASED ROADMAP
+       ============================================================== -->
+  <diagram id="roadmap" name="3. Phased Roadmap">
+    <mxGraphModel dx="1300" dy="820" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1560" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="Delivery Roadmap — POC to Enterprise Production" style="text;html=1;align=left;fontSize=22;fontStyle=1;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="40" y="18" width="900" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="ts" value="The PL/SQL orchestration (ACCOR_EBS_BOT_PKG, ACCOR_IAM_VALIDATOR_PKG) is stable across phases; only data sources, write mechanism and infra change." style="text;html=1;align=left;fontSize=12;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="1100" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cPoc" value="POC — DONE" style="swimlane;startSize=34;html=1;fillColor=#82B366;fontColor=#FFFFFF;fontStyle=1;fontSize=14;swimlaneFillColor=#EFF5EC;strokeColor=#5d8a3a;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="350" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="cPocB" value="● APEX app 43171 — chat + admin&#10;● ACCOR_EBS_BOT_PKG (8 formatters,&#10;&#160;&#160;&#160;keyword router, gated payment)&#10;● ACCOR_IAM_VALIDATOR_PKG&#10;● 12 ACCOR_* mock tables, seeded&#10;● ACCOR_AUDIT_LOG + PENDING_APPROVALS&#10;● Property scope via INSTR()&#10;◐ Select AI optional (graceful fallback)&#10;● Unit test suite (24+ assertions)&#10;&#10;Data: local mock tables&#10;Write: direct gated DML on ACCOR_*&#10;Infra: ATP 23ai Always Free, shared APEX" style="text;html=1;align=left;verticalAlign=top;fontSize=11;whiteSpace=wrap;spacingLeft=10;spacingTop=8;" vertex="1" parent="1">
+          <mxGeometry x="50" y="142" width="330" height="510" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cP1" value="PHASE 1 — Secure Connectivity" style="swimlane;startSize=34;html=1;fillColor=#AAC92A;fontColor=#1A1A1A;fontStyle=1;fontSize=14;swimlaneFillColor=#F7F9EC;strokeColor=#8FA821;align=center;" vertex="1" parent="1">
+          <mxGeometry x="420" y="100" width="350" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="cP1B" value="○ OCI VCN with private subnets&#10;&#160;&#160;&#160;(database + app tiers)&#10;○ FastConnect or IPSec VPN to&#10;&#160;&#160;&#160;on-prem EBS datacentre&#10;○ NSGs — private endpoints only&#10;○ OCI Identity Domains (federated SSO)&#10;○ Vault / Key Management&#10;○ WAF + Load Balancer at edge&#10;&#10;Outcome: hardened network and&#10;identity foundation; app still on&#10;local replica of demo data.&#10;&#10;Use cases (Phase 1 — 80): dynamic&#10;financial analytics — invoice inquiry,&#10;supplier/customer balance, GL/bank&#10;balances, journal status, trial balance,&#10;aging, supplier risk, expense trends." style="text;html=1;align=left;verticalAlign=top;fontSize=11;whiteSpace=wrap;spacingLeft=10;spacingTop=8;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="430" y="142" width="330" height="510" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cP2" value="PHASE 2 — Read Replication" style="swimlane;startSize=34;html=1;fillColor=#AAC92A;fontColor=#1A1A1A;fontStyle=1;fontSize=14;swimlaneFillColor=#F7F9EC;strokeColor=#8FA821;align=center;" vertex="1" parent="1">
+          <mxGeometry x="800" y="100" width="350" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="cP2B" value="○ Oracle GoldenGate Serverless&#10;&#160;&#160;&#160;in OCI (unidirectional)&#10;○ Replicate EBS AP/AR/GL tables&#10;&#160;&#160;&#160;(AP_INVOICES_ALL, GL_BALANCES,&#10;&#160;&#160;&#160;GL_JE_HEADERS/LINES, PO_VENDORS…)&#10;○ Map EBS views over replicas in ATP&#10;○ ORDS REST layer; VPD row security&#10;○ RAG + 23ai AI Vector Search&#10;&#10;Outcome: near-real-time read of&#10;on-prem EBS; semantic retrieval.&#10;&#10;Use cases (Phase 2 — 30): knowledge&#10;&amp; context — &quot;why is invoice blocked?&quot;,&#10;&quot;what policy applies to approval?&quot;,&#10;month-end close blockers, OpEx drivers." style="text;html=1;align=left;verticalAlign=top;fontSize=11;whiteSpace=wrap;spacingLeft=10;spacingTop=8;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="810" y="142" width="330" height="510" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cP3" value="PHASE 3 — Write Path + Scale + Agentic" style="swimlane;startSize=34;html=1;fillColor=#AAC92A;fontColor=#1A1A1A;fontStyle=1;fontSize=13;swimlaneFillColor=#F7F9EC;strokeColor=#8FA821;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="100" width="350" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="cP3B" value="○ EBS Web Services via Integration&#10;&#160;&#160;&#160;Repository (ISG)&#10;○ OIC proxy: ATP REST → EBS PL/SQL&#10;&#160;&#160;&#160;(AP_PAYMENT_PUBLIC_PKG,&#10;&#160;&#160;&#160;GL_JOURNAL_IMPORT)&#10;○ Replace local DML with web-service&#10;&#160;&#160;&#160;callouts to OIC&#10;○ OKE + HPA — 1000+ concurrent users&#10;○ Autonomous Data Guard failover&#10;○ Private OCI GenAI / Accor GPT&#10;○ Per-agent split, tool registry,&#10;&#160;&#160;&#160;prompt registry, eval, circuit breakers&#10;&#10;Use cases (Phase 3 — 12 agents):&#10;forecasting, collections risk, self-healing&#10;reconciliation, autonomous exception&#10;handling, finance copilot." style="text;html=1;align=left;verticalAlign=top;fontSize=10;whiteSpace=wrap;spacingLeft=10;spacingTop=8;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="142" width="330" height="510" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ra1" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#8FA821;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cPoc" target="cP1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ra2" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#8FA821;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cP1" target="cP2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ra3" style="endArrow=classic;html=1;strokeWidth=3;strokeColor=#8FA821;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cP2" target="cP3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="rNote" value="Use-case counts and categories are indicative — detailed and finalised at the start of each phase." style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="675" width="1100" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ==============================================================
+       PAGE 4 — SEQUENCE: READ FLOW (accurate to POC)
+       ============================================================== -->
+  <diagram id="seq-read" name="4. Sequence — Read">
+    <mxGraphModel dx="1400" dy="820" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1340" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="Sequence — Read flow:  analyst asks &quot;Show AP aging for Novotel Paris&quot;" style="text;html=1;align=left;fontSize=20;fontStyle=1;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="40" y="18" width="1200" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="ts" value="Happy path through the POC. All steps are in-database PL/SQL; no LLM call when the intent matches a known formatter." style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="1200" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a1" value="Finance User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DEEBF7;strokeColor=#2E5C8A;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" value="APEX UI&#10;Page 2 + ebs-bot.js" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#AAC92A;strokeColor=#8FA821;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="215" y="90" width="155" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="API Wrapper&#10;process_chat" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#7E57C2;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="400" y="90" width="155" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="IAM Validator&#10;(inbound guard)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="585" y="90" width="155" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" value="Bot Engine&#10;router + AP formatter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#7E57C2;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="770" y="90" width="155" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a6" value="ATP 23ai&#10;ACCOR_AP_INVOICES" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF1FB;strokeColor=#2E5C8A;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="955" y="90" width="155" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a7" value="Audit Log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="90" width="155" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="115" y="130" as="sourcePoint" /><mxPoint x="115" y="720" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l2" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="292" y="130" as="sourcePoint" /><mxPoint x="292" y="720" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l3" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="477" y="130" as="sourcePoint" /><mxPoint x="477" y="720" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l4" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="662" y="130" as="sourcePoint" /><mxPoint x="662" y="720" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l5" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="847" y="130" as="sourcePoint" /><mxPoint x="847" y="720" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l6" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="1032" y="130" as="sourcePoint" /><mxPoint x="1032" y="720" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l7" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="1217" y="130" as="sourcePoint" /><mxPoint x="1217" y="720" as="targetPoint" /></mxGeometry></mxCell>
+
+        <mxCell id="m1" value="1. type message + select property" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="115" y="170" as="sourcePoint" /><mxPoint x="292" y="170" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m2" value="2. PROCESS_CHAT  {x01=message, x02=property_id}" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="292" y="215" as="sourcePoint" /><mxPoint x="477" y="215" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m3" value="3. process_chat_message(...)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="477" y="260" as="sourcePoint" /><mxPoint x="847" y="260" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m4" value="4. is_message_too_long · detect_injection" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;align=left;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="847" y="305" as="sourcePoint" /><mxPoint x="662" y="305" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m5" value="5. validate_action(role, 'read', property) → ALLOWED" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;dashed=1;dashPattern=8 4;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="662" y="350" as="sourcePoint" /><mxPoint x="847" y="350" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m6" value="6. classify intent → 'ap_aging' · call format_ap_aging" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;align=left;verticalAlign=bottom;exitX=0.6;exitY=0.5;entryX=0.4;entryY=0.5;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="847" y="395" as="sourcePoint" /><mxPoint x="932" y="395" as="targetPoint" /><Array as="points"><mxPoint x="932" y="385" /><mxPoint x="932" y="405" /></Array></mxGeometry></mxCell>
+        <mxCell id="m7" value="7. SELECT ... FROM ACCOR_AP_INVOICES (property filter via INSTR)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="847" y="440" as="sourcePoint" /><mxPoint x="1032" y="440" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m8" value="8. rows" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;dashed=1;dashPattern=8 4;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="1032" y="485" as="sourcePoint" /><mxPoint x="847" y="485" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m9" value="9. build HTML table (ebs-table, pills, tabular nums)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;align=left;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="847" y="530" as="sourcePoint" /><mxPoint x="932" y="530" as="targetPoint" /><Array as="points"><mxPoint x="932" y="520" /><mxPoint x="932" y="540" /></Array></mxGeometry></mxCell>
+        <mxCell id="m10" value="10. log_audit('READ_QUERY','allowed', intent) — autonomous tx" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="847" y="575" as="sourcePoint" /><mxPoint x="1217" y="575" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m11" value="11. JSON {reply, intent, requires_approval=false}" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;dashed=1;dashPattern=8 4;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="847" y="620" as="sourcePoint" /><mxPoint x="292" y="620" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="m12" value="12. sanitize via ALLOWED_TAGS · render in chat bubble" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;dashed=1;dashPattern=8 4;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="292" y="665" as="sourcePoint" /><mxPoint x="115" y="665" as="targetPoint" /></mxGeometry></mxCell>
+
+        <mxCell id="fn" value="If the intent matches no formatter, the Bot Engine falls through to the optional Select AI gateway (DBMS_CLOUD_AI.GENERATE via EXECUTE IMMEDIATE); when that is absent it returns a static help card. ORDS / VPD / PII redaction are Phase-1+ targets, not in this path today." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7F9EC;strokeColor=#8FA821;align=left;verticalAlign=middle;fontSize=11;fontStyle=2;spacingLeft=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="730" width="1255" height="50" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ==============================================================
+       PAGE 5 — SEQUENCE: GATED WRITE FLOW (accurate to POC)
+       ============================================================== -->
+  <diagram id="seq-write" name="5. Sequence — Gated Write">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1340" pageHeight="1020" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="t" value="Sequence — Gated write flow:  manager &quot;Approve payment for ap_inv_1001&quot;" style="text;html=1;align=left;fontSize=20;fontStyle=1;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="40" y="18" width="1200" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="ts" value="Two-phase handshake backed by ACCOR_PENDING_APPROVALS. No DML on the ledger before an explicit CONFIRM. In the POC the UPDATE is local; Phase 3 routes it through OIC → EBS." style="text;html=1;align=left;fontSize=11;fontStyle=2;fontColor=#666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="1280" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="a1" value="Manager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DEEBF7;strokeColor=#2E5C8A;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" value="APEX UI&#10;Page 2 + modal" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#AAC92A;strokeColor=#8FA821;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="250" y="90" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a3" value="Bot Engine&#10;router + IAM gate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE7F6;strokeColor=#7E57C2;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="470" y="90" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a4" value="PENDING_APPROVALS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="690" y="90" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a5" value="ACCOR_AP_INVOICES" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF1FB;strokeColor=#2E5C8A;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="910" y="90" width="170" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="a6" value="Audit Log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="90" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="125" y="130" as="sourcePoint" /><mxPoint x="125" y="930" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l2" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="335" y="130" as="sourcePoint" /><mxPoint x="335" y="930" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l3" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="555" y="130" as="sourcePoint" /><mxPoint x="555" y="930" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l4" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="775" y="130" as="sourcePoint" /><mxPoint x="775" y="930" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l5" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="995" y="130" as="sourcePoint" /><mxPoint x="995" y="930" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="l6" style="endArrow=none;html=1;strokeColor=#999;dashed=1;dashPattern=4 4;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="1220" y="130" as="sourcePoint" /><mxPoint x="1220" y="930" as="targetPoint" /></mxGeometry></mxCell>
+
+        <mxCell id="pA" value="Phase A — Request &amp; gate  (no DML on ledger)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="150" width="1260" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="w1" value="1. type &quot;Approve payment for ap_inv_1001&quot;" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="125" y="195" as="sourcePoint" /><mxPoint x="335" y="195" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="w2" value="2. PROCESS_CHAT (injection + length cleared)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="335" y="240" as="sourcePoint" /><mxPoint x="555" y="240" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="w3" value="3. classify 'write' · validate_action(role='manager', property) → ALLOWED" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;align=left;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="555" y="285" as="sourcePoint" /><mxPoint x="640" y="285" as="targetPoint" /><Array as="points"><mxPoint x="640" y="275" /><mxPoint x="640" y="295" /></Array></mxGeometry></mxCell>
+        <mxCell id="w4" value="4. create_pending_approval — INSERT status='pending', expires_at=+15min&#10;(auto-cancels any prior pending on this thread)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;strokeColor=#B85450;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="555" y="335" as="sourcePoint" /><mxPoint x="775" y="335" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="w5" value="5. JSON {requires_approval=true, approval_payload={approval_id, invoice, amount}}" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;dashed=1;dashPattern=8 4;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="555" y="385" as="sourcePoint" /><mxPoint x="335" y="385" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="w6" value="6. show confirmation modal (invoice details · Confirm / Cancel)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;dashed=1;dashPattern=8 4;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="335" y="430" as="sourcePoint" /><mxPoint x="125" y="430" as="targetPoint" /></mxGeometry></mxCell>
+
+        <mxCell id="pB" value="Phase B — Confirm &amp; commit  (gated DML)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;align=left;verticalAlign=middle;fontSize=11;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="460" width="1260" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="w7" value="7. click &quot;Confirm payment&quot; → sends CONFIRM" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="125" y="505" as="sourcePoint" /><mxPoint x="335" y="505" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="w8" value="8. PROCESS_CHAT &quot;CONFIRM&quot;" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="335" y="550" as="sourcePoint" /><mxPoint x="555" y="550" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="w9" value="9. expire stale rows · SELECT latest pending for (thread,user) where exp&gt;now()" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="555" y="595" as="sourcePoint" /><mxPoint x="775" y="595" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="w10" value="10. UPDATE ACCOR_AP_INVOICES SET status='paid'" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;strokeColor=#B85450;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="555" y="640" as="sourcePoint" /><mxPoint x="995" y="640" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="w11" value="11. UPDATE pending SET status='confirmed', confirmed_at=now()" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;strokeColor=#B85450;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="555" y="685" as="sourcePoint" /><mxPoint x="775" y="685" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="w12" value="12. log_audit('DML_EXECUTION','allowed') — autonomous tx" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="555" y="730" as="sourcePoint" /><mxPoint x="1220" y="730" as="targetPoint" /></mxGeometry></mxCell>
+        <mxCell id="w13" value="13. render &quot;Payment Approved Successfully&quot; card" style="endArrow=classic;html=1;strokeWidth=2;fontSize=11;dashed=1;dashPattern=8 4;verticalAlign=bottom;" edge="1" parent="1"><mxGeometry relative="1" as="geometry"><mxPoint x="555" y="775" as="sourcePoint" /><mxPoint x="125" y="775" as="targetPoint" /></mxGeometry></mxCell>
+
+        <mxCell id="fbT" value="Failure paths (out-of-band)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FBF4F4;strokeColor=#B85450;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="810" width="1260" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="fb" value="• Cancel (Esc / Cancel) → CANCEL_APPROVAL → cancel_pending_approval → UPDATE pending SET status='cancelled'. No ledger DML; audit row written.&#10;• Expiry (15 min idle) → CONFIRM finds no live row → clean error, no DML.&#10;• Analyst attempts approve → step 3 returns BLOCKED, audit row 'blocked / role denied', flow terminates before any pending row is created." style="text;html=1;align=left;verticalAlign=top;fontSize=11;whiteSpace=wrap;spacingLeft=10;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="840" width="1260" height="70" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</mxfile>

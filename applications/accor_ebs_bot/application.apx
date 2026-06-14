@@ -1,5 +1,5 @@
-app ACCOR-EBS-BOT (
-    name: ACCOR EBS Finance Bot
+app GRANDBACK-EBS-BOT (
+    name: Grandback (EBS) Finance Bot
     logo {
         type: text
         text: &APP_TITLE.

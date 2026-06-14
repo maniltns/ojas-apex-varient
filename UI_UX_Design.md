@@ -1,5 +1,12 @@
 # UI/UX Design Specification — ACCOR EBS Conversational Bot
 
+> **RFP alignment note.** This document refers to **ACCOR Grandback** (the client's Oracle EBS 12.2.12
+> landscape). Code identifiers use the `GRANDBACK_*` prefix. The solution is delivered in three RFP
+> phases — Phase 1 (API-first / dynamic analytics, 80 use cases), Phase 2 (Knowledge & Context /
+> Vector Search, 30), Phase 3 (Agentic AI, 12). This POC builds a representative **Phase 1** subset.
+> Canonical references: [POC_IMPLEMENTATION_PLAN.md](POC_IMPLEMENTATION_PLAN.md) ·
+> [RFP_TRACEABILITY.md](RFP_TRACEABILITY.md).
+
 This document defines the interface standards, component specifications, and user experience patterns for the ACCOR EBS Conversational Bot application built on Oracle APEX.
 
 ---
@@ -48,6 +55,6 @@ The application uses standard sans-serif typographies loaded dynamically through
 ### 2.3 Page 3: Admin Governance Panel
 * Gated by the `Administration Rights` authorization scheme.
 * Tabbed navigation region grouping:
-  * **Tab 1: Users Directory:** An Interactive Report on `ACCOR_USERS`.
-  * **Tab 2: Audit Logs:** An Interactive Report on the general system access logs (`ACCOR_AUDIT_LOG`).
+  * **Tab 1: Users Directory:** An Interactive Report on `GRANDBACK_USERS`.
+  * **Tab 2: Audit Logs:** An Interactive Report on the general system access logs (`GRANDBACK_AUDIT_LOG`).
   * **Tab 3: Security Threats Console:** A dedicated grid showing only entries in the log where `status = 'blocked'`. Payloads that triggered injection guardrails are displayed in high-visibility alert rows.

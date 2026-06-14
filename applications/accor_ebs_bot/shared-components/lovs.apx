@@ -25,9 +25,25 @@ lov properties-lov (
         sqlQuery:
             ```sql
             select name as d, property_id as r
-              from ACCOR_PROPERTIES
+              from GRANDBACK_PROPERTIES
+             where status = 'active'
              order by name
             ```
     }
 )
 
+lov properties-for-user-lov (
+    name: PROPERTIES_FOR_USER_LOV
+    source {
+        location: localDatabase
+        sqlQuery:
+            ```sql
+            select p.name as d, p.property_id as r
+              from GRANDBACK_PROPERTIES p
+             where p.status = 'active'
+               and ( :G_USER_ROLE = 'admin'
+                     or instr(NVL(:G_PROPERTY_ACCESS,''), p.property_id) > 0 )
+             order by p.name
+            ```
+    }
+)

@@ -1,0 +1,86 @@
+appProcess bootstrap-user-session (
+    name: Bootstrap User Session
+    type: executeCode
+    source {
+        plsqlCode:
+            ```plsql
+            GRANDBACK_BOT_PKG.bootstrap_user_session(p_email => :APP_USER);
+            ```
+    }
+    execution {
+        sequence: 10
+        point: afterAuthentication
+    }
+)
+
+appProcess load-bootstrap (
+    name: LOAD_BOOTSTRAP
+    type: executeCode
+    source {
+        plsqlCode:
+            ```plsql
+            GRANDBACK_BOT_API_PKG.load_bootstrap;
+            ```
+    }
+    execution {
+        sequence: 10
+        point: ajaxCallback
+    }
+    security {
+        authorizationScheme: @authenticated-finance-user
+    }
+)
+
+appProcess process-chat (
+    name: PROCESS_CHAT
+    type: executeCode
+    source {
+        plsqlCode:
+            ```plsql
+            GRANDBACK_BOT_API_PKG.process_chat;
+            ```
+    }
+    execution {
+        sequence: 20
+        point: ajaxCallback
+    }
+    security {
+        authorizationScheme: @authenticated-finance-user
+    }
+)
+
+appProcess cancel-approval (
+    name: CANCEL_APPROVAL
+    type: executeCode
+    source {
+        plsqlCode:
+            ```plsql
+            GRANDBACK_BOT_API_PKG.cancel_approval;
+            ```
+    }
+    execution {
+        sequence: 30
+        point: ajaxCallback
+    }
+    security {
+        authorizationScheme: @manager-or-admin
+    }
+)
+
+appProcess load-gov-kpis (
+    name: LOAD_GOV_KPIS
+    type: executeCode
+    source {
+        plsqlCode:
+            ```plsql
+            GRANDBACK_BOT_API_PKG.load_governance_kpis;
+            ```
+    }
+    execution {
+        sequence: 40
+        point: ajaxCallback
+    }
+    security {
+        authorizationScheme: @administration-rights
+    }
+)
