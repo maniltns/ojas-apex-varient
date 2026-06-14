@@ -68,7 +68,8 @@ CREATE OR REPLACE PACKAGE BODY GRANDBACK_BOT_API_PKG AS
               FROM GRANDBACK_PROPERTIES
              WHERE status = 'active'
                AND ( v_user_role = 'admin'
-                     OR INSTR(NVL(v_user_acc,''), property_id) > 0 )
+                     OR INSTR(',' || REPLACE(NVL(v_user_acc,''),' ','') || ',',
+                              ',' || property_id || ',') > 0 )
              ORDER BY name
         ) LOOP
             APEX_JSON.OPEN_OBJECT;

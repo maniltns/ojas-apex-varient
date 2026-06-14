@@ -1041,8 +1041,13 @@ CREATE OR REPLACE PACKAGE BODY GRANDBACK_BOT_PKG AS
             END;
 
         ELSE
-            -- Select AI fallback (kept dynamic so this package compiles on
-            -- sandbox instances without DBMS_CLOUD_AI).
+            -- PHASE-1 NLQ ENGINE. Curated formatters above handle the marquee
+            -- questions deterministically; everything else (the long tail of the
+            -- ~80 Phase-1 use cases — see USE_CASE_CATALOGUE.md) is answered here
+            -- by Oracle Select AI: NL → SQL, SELECT-only, grounded to GRANDBACK_*.
+            -- Invoked via EXECUTE IMMEDIATE so the package still compiles on
+            -- instances without DBMS_CLOUD_AI; with no profile configured it
+            -- degrades to the static capability card (demo never dead-ends).
             BEGIN
                 EXECUTE IMMEDIATE 'BEGIN :1 := DBMS_CLOUD_AI.GENERATE(prompt => :2, profile_name => :3); END;'
                 USING OUT v_reply, IN p_message, IN 'GRANDBACK_BOT_PROFILE';
@@ -1073,7 +1078,9 @@ CREATE OR REPLACE PACKAGE BODY GRANDBACK_BOT_PKG AS
                     '<li><code>Expense trend</code> &middot; expense accounts ranked by share</li>' ||
                     '<li><code>Approve payment for ap_inv_1001</code> &middot; gated payment workflow (manager only)</li>' ||
                     '</ul>' ||
-                    '<p class="ebs-muted">Select AI is not configured on this database. Static help shown.</p>' ||
+                    '<p class="ebs-muted">Natural-language analytics (Select AI) is not configured on this database, ' ||
+                    'so only the curated quick actions above are available. Configure 06_setup_select_ai.sql ' ||
+                    'with an LLM key to ask free-form questions across AP/AR/GL/CM/FA.</p>' ||
                     '</div>';
             END;
         END IF;

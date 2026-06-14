@@ -68,16 +68,37 @@ CREATE OR REPLACE PACKAGE BODY GRANDBACK_IAM_PKG AS
 
         -- Case-insensitive match: full email OR short username (e.g. 'ANALYST' → 'analyst@accor.com').
         -- This pattern is load-bearing — covered by the test suite.
+        -- Prefer an EXACT email match; only fall back to the short-username
+        -- prefix match if no exact row exists. This avoids TOO_MANY_ROWS when a
+        -- short username is a prefix of several emails, and makes resolution
+        -- deterministic. FETCH FIRST guards the prefix branch defensively.
         BEGIN
-            SELECT user_id, email, name, role, ebs_role, property_access, org_id
-              INTO v_ctx.user_id, v_ctx.email, v_ctx.name, v_ctx.role,
-                   v_ctx.ebs_role, v_ctx.property_access, v_ctx.org_id
-              FROM GRANDBACK_USERS
-             WHERE UPPER(email) = UPPER(p_email)
-                OR UPPER(email) LIKE UPPER(p_email) || '@%';
-            v_ctx.is_resolved := TRUE;
+            BEGIN
+                SELECT user_id, email, name, role, ebs_role, property_access, org_id
+                  INTO v_ctx.user_id, v_ctx.email, v_ctx.name, v_ctx.role,
+                       v_ctx.ebs_role, v_ctx.property_access, v_ctx.org_id
+                  FROM GRANDBACK_USERS
+                 WHERE UPPER(email) = UPPER(p_email);
+                v_ctx.is_resolved := TRUE;
+            EXCEPTION
+                WHEN NO_DATA_FOUND THEN
+                    SELECT user_id, email, name, role, ebs_role, property_access, org_id
+                      INTO v_ctx.user_id, v_ctx.email, v_ctx.name, v_ctx.role,
+                           v_ctx.ebs_role, v_ctx.property_access, v_ctx.org_id
+                      FROM (
+                          SELECT user_id, email, name, role, ebs_role, property_access, org_id
+                            FROM GRANDBACK_USERS
+                           WHERE UPPER(email) LIKE UPPER(p_email) || '@%'
+                           ORDER BY email
+                      )
+                     WHERE ROWNUM = 1;
+                    v_ctx.is_resolved := TRUE;
+            END;
         EXCEPTION
             WHEN NO_DATA_FOUND THEN
+                v_ctx.is_resolved := FALSE;
+            WHEN OTHERS THEN
+                -- Never let identity resolution throw into an autonomous audit tx.
                 v_ctx.is_resolved := FALSE;
         END;
 
@@ -205,8 +226,12 @@ CREATE OR REPLACE PACKAGE BODY GRANDBACK_IAM_PKG AS
             RETURN 'ALLOWED';
         END IF;
 
-        -- Property boundary check.
-        IF p_property_id IS NULL OR INSTR(v_ctx.property_access, p_property_id) = 0 THEN
+        -- Property boundary check — EXACT CSV membership, not substring.
+        -- (Wrapping both sides in commas prevents 'prop_ibis' from matching
+        --  'prop_ibis_london' — a substring-match authorization bypass.)
+        IF p_property_id IS NULL
+           OR INSTR(',' || REPLACE(v_ctx.property_access,' ','') || ',',
+                    ',' || p_property_id || ',') = 0 THEN
             RETURN 'BLOCKED: EBS role has no permission context for property ID: ' || NVL(p_property_id, '<none>');
         END IF;
 

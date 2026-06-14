@@ -42,7 +42,8 @@ lov properties-for-user-lov (
               from GRANDBACK_PROPERTIES p
              where p.status = 'active'
                and ( :G_USER_ROLE = 'admin'
-                     or instr(NVL(:G_PROPERTY_ACCESS,''), p.property_id) > 0 )
+                     or instr(',' || replace(NVL(:G_PROPERTY_ACCESS,''),' ','') || ',',
+                              ',' || p.property_id || ',') > 0 )
              order by p.name
             ```
     }

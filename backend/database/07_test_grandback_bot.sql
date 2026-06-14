@@ -87,6 +87,14 @@ BEGIN
     v_allowed := GRANDBACK_IAM_PKG.validate_action('admin@accor.com', 'Super Admin', 'write', 'prop_sofitel_nyc');
     assert(v_allowed = 'ALLOWED', 'Admin bypasses property scope');
 
+    -- Regression: property scope is EXACT CSV membership, not substring.
+    -- 'prop_ibis' must NOT pass against access list containing 'prop_ibis_london'.
+    v_allowed := GRANDBACK_IAM_PKG.validate_action('analyst@accor.com', 'Finance Analyst', 'read', 'prop_ibis');
+    assert(v_allowed LIKE 'BLOCKED%', 'Substring property id (prop_ibis) denied — no INSTR bypass');
+
+    v_allowed := GRANDBACK_IAM_PKG.validate_action('analyst@accor.com', 'Finance Analyst', 'read', 'prop_ibis_london');
+    assert(v_allowed = 'ALLOWED', 'Exact authorized property (prop_ibis_london) allowed');
+
     -- ───────────────────────────────────────────────────────────────
     section('Short username case-insensitive resolution');
 
@@ -311,6 +319,49 @@ BEGIN
     -- cleanup the pending row created above
     UPDATE GRANDBACK_PENDING_APPROVALS SET status='cancelled' WHERE thread_id = v_thread_id || '_cm' AND status='pending';
     COMMIT;
+
+    -- ───────────────────────────────────────────────────────────────
+    section('Data accuracy — output reconciles to seed numbers');
+
+    -- The AP aging reply for Novotel Paris must contain the exact seeded
+    -- amount of a known unpaid invoice (ap_inv_1006 = 8,200.00 EUR). This
+    -- proves the formatter returns real figures, not just the right intent.
+    -- Reset ap_inv_1001 first (earlier tests mark it paid).
+    UPDATE GRANDBACK_AP_INVOICES SET status='unpaid' WHERE invoice_id='ap_inv_1001';
+    COMMIT;
+    v_result := GRANDBACK_BOT_PKG.process_chat_message(
+        p_email => 'analyst@accor.com', p_ebs_role => 'Finance Analyst',
+        p_message => 'Show AP aging', p_property_id => 'prop_novotel_paris',
+        p_thread_id => v_thread_id);
+    assert(v_result LIKE '%8,200.00%', 'AP aging shows exact seeded amount 8,200.00 (data accuracy)');
+    assert(v_result LIKE '%INV-MBC-441%', 'AP aging shows the matching invoice number (data accuracy)');
+
+    -- ───────────────────────────────────────────────────────────────
+    section('Bias & fairness — same question, different persona, same data');
+
+    -- Two write-capable managers on the SAME property must get IDENTICAL
+    -- AP-aging content for that property (role wording / persona must not
+    -- change the figures). We compare the rendered table bodies.
+    DECLARE
+        v_mgr   VARCHAR2(32767);
+        v_cm    VARCHAR2(32767);
+        FUNCTION table_only(p IN VARCHAR2) RETURN VARCHAR2 IS
+        BEGIN
+            -- strip the JSON envelope noise; compare the invoice rows region
+            RETURN REGEXP_REPLACE(p, '.*<tbody>(.*)</tbody>.*', '\1', 1, 1, 'n');
+        END;
+    BEGIN
+        v_mgr := GRANDBACK_BOT_PKG.process_chat_message(
+            p_email => 'manager@accor.com', p_ebs_role => 'Finance Manager',
+            p_message => 'Show AP aging', p_property_id => 'prop_novotel_paris',
+            p_thread_id => v_thread_id || '_b1');
+        v_cm := GRANDBACK_BOT_PKG.process_chat_message(
+            p_email => 'cashmgr@accor.com', p_ebs_role => 'Cash Manager',
+            p_message => 'Show AP aging', p_property_id => 'prop_novotel_paris',
+            p_thread_id => v_thread_id || '_b2');
+        assert(table_only(v_mgr) = table_only(v_cm),
+               'Identical AP-aging rows for Manager vs Cash Manager on same property (no persona bias)');
+    END;
 
     -- ───────────────────────────────────────────────────────────────
     section('Length guard — chat orchestration path');

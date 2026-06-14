@@ -9,10 +9,19 @@
 -- AFTER 01..04 have installed. Requires ORDS enabled on the ATP instance
 -- (Always-Free ATP has ORDS on by default).
 --
--- NOTE on auth: for a trial/demo these resources are defined WITHOUT a privilege
--- (publicly reachable on the ORDS URL). To lock them down, uncomment the
--- ORDS.CREATE_ROLE / DEFINE_PRIVILEGE / OAuth client block at the bottom and
--- protect the /grandback/v1/ pattern.
+-- ⚠ SECURITY — READ BEFORE EXPOSING BEYOND A SANDBOX ⚠
+--   As shipped, these resources are OPEN (no ORDS privilege) so a trial demo
+--   works with zero auth setup. In this "demo mode" the caller's identity is
+--   taken from the request body "email" — meaning ANYONE who can reach the URL
+--   can act as ANY persona, including admin. This is acceptable ONLY for an
+--   isolated, throwaway trial.
+--   For ANY shared/persistent/internet-reachable deployment you MUST:
+--     1. Uncomment the OAuth2 / DEFINE_PRIVILEGE block at the bottom to protect
+--        the /grandback/v1/* pattern, AND
+--     2. Rely on :current_user (the authenticated principal) for identity — the
+--        handlers already prefer it and only fall back to body "email" when no
+--        principal is present.
+--   See SECURITY_TESTING.md for the authz/injection test checklist.
 -- =====================================================================
 
 SET SERVEROUTPUT ON SIZE UNLIMITED
@@ -63,7 +72,15 @@ BEGIN
                 v_ctx      GRANDBACK_IAM_PKG.user_context_t;
                 v_result   VARCHAR2(32767);
             BEGIN
-                v_email   := JSON_VALUE(:body_text, '$.email');
+                -- IDENTITY: trust the authenticated ORDS principal first.
+                -- :current_user is populated when the resource is protected
+                -- (OAuth2 / first-party auth). Only when there is NO authenticated
+                -- principal (open demo mode) do we fall back to the body email.
+                -- This prevents admin impersonation via a forged "email" field.
+                v_email   := :current_user;
+                IF v_email IS NULL THEN
+                    v_email := JSON_VALUE(:body_text, '$.email');   -- DEMO MODE ONLY
+                END IF;
                 v_message := JSON_VALUE(:body_text, '$.message');
                 v_prop    := JSON_VALUE(:body_text, '$.property_id');
                 v_thread  := NVL(JSON_VALUE(:body_text, '$.thread_id'), 'api_' || SYS_GUID());
@@ -100,9 +117,10 @@ BEGIN
         p_source_type => ORDS.source_type_plsql,
         p_source      => q'[
             DECLARE
-                v_ctx GRANDBACK_IAM_PKG.user_context_t;
+                v_ctx   GRANDBACK_IAM_PKG.user_context_t;
+                v_email VARCHAR2(200) := NVL(:current_user, :email);  -- principal first
             BEGIN
-                v_ctx := GRANDBACK_IAM_PKG.get_user_context(:email);
+                v_ctx := GRANDBACK_IAM_PKG.get_user_context(v_email);
                 OWA_UTIL.MIME_HEADER('application/json', FALSE);
                 HTP.P('Access-Control-Allow-Origin: *');
                 OWA_UTIL.HTTP_HEADER_CLOSE;
@@ -120,7 +138,8 @@ BEGIN
                       FROM GRANDBACK_PROPERTIES
                      WHERE status = 'active'
                        AND ( v_ctx.role = 'admin'
-                             OR INSTR(NVL(v_ctx.property_access,''), property_id) > 0 )
+                             OR INSTR(',' || REPLACE(NVL(v_ctx.property_access,''),' ','') || ',',
+                                      ',' || property_id || ',') > 0 )
                      ORDER BY name
                 ) LOOP
                     APEX_JSON.OPEN_OBJECT;
@@ -156,10 +175,11 @@ BEGIN
         p_source_type => ORDS.source_type_plsql,
         p_source      => q'[
             DECLARE
-                v_ctx  GRANDBACK_IAM_PKG.user_context_t;
-                v_res  VARCHAR2(32767);
+                v_ctx   GRANDBACK_IAM_PKG.user_context_t;
+                v_res   VARCHAR2(32767);
+                v_email VARCHAR2(200) := NVL(:current_user, :email);  -- principal first
             BEGIN
-                v_ctx := GRANDBACK_IAM_PKG.get_user_context(:email);
+                v_ctx := GRANDBACK_IAM_PKG.get_user_context(v_email);
                 IF NOT v_ctx.is_resolved THEN
                     :status_code := 403;
                     OWA_UTIL.MIME_HEADER('application/json', FALSE);
@@ -169,7 +189,7 @@ BEGIN
                 END IF;
                 -- route through the engine so IAM scope + audit still apply
                 v_res := GRANDBACK_BOT_PKG.process_chat_message(
-                    p_email => :email, p_ebs_role => v_ctx.ebs_role,
+                    p_email => v_email, p_ebs_role => v_ctx.ebs_role,
                     p_message => 'Show AP aging', p_property_id => :property_id,
                     p_thread_id => 'api_aging', p_session_id => 'ords');
                 OWA_UTIL.MIME_HEADER('application/json', FALSE);
@@ -221,7 +241,7 @@ BEGIN
         p_source      => q'[
             BEGIN
                 GRANDBACK_BOT_PKG.cancel_pending_approval(
-                    p_email     => JSON_VALUE(:body_text, '$.email'),
+                    p_email     => NVL(:current_user, JSON_VALUE(:body_text, '$.email')),
                     p_thread_id => JSON_VALUE(:body_text, '$.thread_id'));
                 OWA_UTIL.MIME_HEADER('application/json', FALSE);
                 HTP.P('Access-Control-Allow-Origin: *');
