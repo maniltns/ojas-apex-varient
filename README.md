@@ -20,12 +20,12 @@ the same PL/SQL.
 
 ```mermaid
 graph TD
-    User([Finance User]) -->|HTTPS / REST| Edge["Oracle APEX (Page 2 chat)  ·  ORDS /grandback/v1/*"]
-    Edge -->|process_chat_message| Bot["GRANDBACK_BOT_PKG (6-step pipeline · 15 formatters)"]
+    User([Finance User]) -->|HTTPS or REST| Edge["Oracle APEX Page 2 chat · ORDS /grandback/v1/*"]
+    Edge -->|process_chat_message| Bot["GRANDBACK_BOT_PKG · 6-step pipeline · 15 formatters"]
     Bot -->|guard / IAM / audit| Sec["GRANDBACK_IAM_PKG"]
     Bot -->|gated DML| Pend[("GRANDBACK_PENDING_APPROVALS")]
-    Bot -->|NL→SQL (optional, SELECT-only)| SelectAI["Select AI / OCI GenAI"]
-    Bot -->|read/write| Data[("GRANDBACK_* tables — AP·AR·GL·CM·FA on ATP 23ai")]
+    Bot -->|NL to SQL · optional · SELECT-only| SelectAI["Select AI / OCI GenAI"]
+    Bot -->|read / write| Data[("GRANDBACK_* tables · AP AR GL CM FA on ATP 23ai")]
     Sec -->|autonomous tx| Audit[("GRANDBACK_AUDIT_LOG")]
 ```
 
