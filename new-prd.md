@@ -1,4 +1,4 @@
-# Grandback (EBS) Finance Conversational Bot — Product Requirements (POC)
+# Grandback (EBS) Finance Conversational Assistant — Product Requirements (POC)
 
 > **Scope note.** This PRD describes the **native Oracle** POC as actually built — Oracle APEX +
 > OCI Autonomous Database 23ai, with all logic in PL/SQL packages and an ORDS REST API. It supersedes
